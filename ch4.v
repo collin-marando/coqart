@@ -199,5 +199,4 @@ Proof.
 Qed.
 
 Definition proof2 : resolution :=
-  fun A P Q R T HQRT HPQ => 
-  fun e Pe Re => (HQRT e) 
+  fun A P Q R T HQRT HPQ e Pe Re => HQRT e (HPQ e Pe) Re.
