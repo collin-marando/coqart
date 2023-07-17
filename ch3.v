@@ -54,6 +54,7 @@ Proof.
   intros _. assumption.
 Qed.
 
+(* Ex: Proof without tactics, using the section mechanism *)
 Section proof_of_triple_impl.
   Hypothesis H : ((P -> Q) -> Q) -> Q.
   Hypothesis p : P.
