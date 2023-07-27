@@ -1,0 +1,26 @@
+* Open/Close Scope [scope_name]
+* Print Scope [scope_name]
+* Reset [id]/Initial
+* Set/Unset Printing Notations 
+
+* Variable    : Local Type declaration
+* Parameter   : Global Type declaration
+* Let         : Local Type definition  (transparent)
+* Definition  : Global Type definition (transparent)
+
+* Hypothesis    : Local Prop declaration
+* Axiom         : Global Prop declaration
+* Goal          : Local Prop definition
+* Theorem/Lemma : Global Prop definition (opaque)
+
+* Context     : Global?? constraint
+
+* Defined     : End Definition
+* Qed         : End Theorem
+* Save [id]   : End Goal and save as [id]
+
+* Show n : Show nth goal and its env + context
+
+* Undo n  : Undo n steps in a proof
+* Restart : Restart proof
+* Abort   : Abort proof

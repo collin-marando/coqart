@@ -1,0 +1,59 @@
+-- Definition 1 (Inhabited types) --
+A type, _A_, is inhabited in an environment _E_ 
+and a context _Sigma_ if there exists a term _t_ such
+that the _E,Sigma |- t:A_ holds.
+
+-- Conversions/Reductions ---
+* alpha conversion  : renaming bound variables
+* delta reduction   : unaliasing, aka unfolding
+* beta reduction    : argument application
+* zeta reduction    : local bindings, let
+* iota reduction    : inductive types???
+
+-- Definition 2 (Specification) --
+Every term whose type is Set is called a specification.
+
+-- Definition 3 (Programs) --
+Every term whose type is a specification is called a program.
+
+-- Minimal Propositional Logic --
+Logic system in which formulae are constructed exclusively
+from propositional variables and implication. All
+Props in MPL can be solved using only:
+  intros and apply/assumption 
+
+-- Definition 4 (Proposition, proof term) --
+Every type _P_ whose type is the sort Prop is called
+a proposition. Any term t whose type is a proposition
+is called a proof term, or, for short, a proof.
+
+-- Definition 5 (Hypothesis) --
+A local declaration _h:P_ where _h_ is an identifier
+and _P_ is a proposition is called a hypothesis. The
+identifier _h_ is the name of the hypothesis and _P_
+is its statement.
+
+-- Definition 6 (Axiom) --
+A global declaration _x:P_ where _x_ is an identifier
+and _P_ is a proposition is called an axiom.
+
+-- Definition 7 (Theorems, Lemmas) --
+Global definitions of identifiers whose type is
+a proposition, are called theorems or lemmas.
+
+-- Definition 8 (Goal) --
+A goal is the pairing of two pieces of information: a
+local context _Gamma_ and a type _t_ that is well-formed
+in this context.
+
+-- Definition 9 (Tactics) --
+Tactics are commands that can be applied to a goal.
+Their effect is to produce a new, possibly empty,
+list of goals. If _g_ is the input goal and 
+g_l, ... , g_k are the output goals, the tactic has an
+associated function that makes it possible to construct
+a solution of g from the solutions of goals g_i·
+
+-- Dependent Product --
+
+- intro and elimination rules

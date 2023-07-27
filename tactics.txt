@@ -1,0 +1,53 @@
+---- Tacticals ----
+* Generalized compostion
+  t1; t2; [t3 | t4 [t5 t6]]
+  ; = compostion
+  | = disjunction
+  _ = conjunction
+
+* or_else
+  t1 || t2 || t3
+  attempt t1, if fail, attempt t2, if fail... else fail
+  Note : try t1 = t1 || idtac
+
+---- Tactics ----
+
+* intros (primitive typing rule, Lam)
+  move implication premises from the goal to the context
+
+* apply (primitive typing rule, App)
+  _implication elimination_ using modus ponens, chaining
+  the rule to generate multiple goals for each of the
+  head types of the implication chain.
+
+* exact (direct proof)
+  solve the goal by providing a valid proof term
+
+* assumption (proof using context)
+  solve the goal using an existing context variable
+
+* idtac (no-op)
+  do nothing; useful as neutral op for multi-tacs
+
+* fail
+  fail proof; useful as ternimal op for multi-tacs
+
+* try (attempt or_else no-op)
+  try t1 = t1 || idtac
+
+* try solve (solve or_else no-op)
+  try solve t1 = try (t1; fail)
+
+* cut [P] 
+  break goal Q into goals (P -> Q) and P
+
+* assert [P]
+  break goal Q into goals P and (P -> Q)
+
+* auto n 
+  recursive combo of intros/assumption/apply to depth n
+  default 5
+
+* trivial
+  weaker version of auto, for proof readibility
+
