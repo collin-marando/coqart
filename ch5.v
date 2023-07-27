@@ -342,6 +342,9 @@ Proof.
   rewrite <- Nat.add_assoc.
   (* This trick using pattern allows me to isolate the rewrite target
     by abstracting away the variable that isn't involved. *)
+  (* This is similar to using revert but does so
+    via a function rather than a universal quantifier. *)
+  (* revert n. rewrite Nat.add_comm. *)
   pattern n. rewrite Nat.add_comm. 
   rewrite Nat.add_assoc.
   reflexivity.
