@@ -54,6 +54,20 @@ g_l, ... , g_k are the output goals, the tactic has an
 associated function that makes it possible to construct
 a solution of g from the solutions of goals g_i·
 
--- Dependent Product --
+-- Definition 10 (Head type, Final type) --
+If _t_ has type _P1 -> ... -> Pn -> Q_, then the terms
+_Pk -> ... -> Pn -> Q_ and _Q_ are called the head types
+of rank k of t. The term _Q_ itself is also called the
+final type if it is not an arrow type.
+
+-- Definition 11 (Dependent product) --
+A dependent product is a type of the form 
+_forall v : A, B_ where _A_ and _B_ are types 
+and v is a bound variable whose scope covers B.
+Thus, the variable v can have free occurrences in B.
+The dependent product of this form is read as:
+"for any v of type A, B."
+
 
 - intro and elimination rules
+  (Note: What was I going to write here??)

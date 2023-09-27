@@ -24,3 +24,7 @@
 * Undo n  : Undo n steps in a proof
 * Restart : Restart proof
 * Abort   : Abort proof
+
+* Search        : Basic lookup 
+* SearchPattern : Search for universally quantified theorems
+* SearchRewrite : Search for rewrite theorems

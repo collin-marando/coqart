@@ -10,6 +10,14 @@
   attempt t1, if fail, attempt t2, if fail... else fail
   Note : try t1 = t1 || idtac
 
+* try (attempt or_else no-op)
+  try t1 = t1 || idtac
+
+* try solve (solve or_else no-op)
+  try solve t1 = try (t1; fail)
+
+* repeat (repeat and stop on fail)
+
 ---- Tactics ----
 
 * intros (primitive typing rule, Lam)
@@ -32,12 +40,6 @@
 * fail
   fail proof; useful as ternimal op for multi-tacs
 
-* try (attempt or_else no-op)
-  try t1 = t1 || idtac
-
-* try solve (solve or_else no-op)
-  try solve t1 = try (t1; fail)
-
 * cut [P] 
   break goal Q into goals (P -> Q) and P
 
@@ -51,3 +53,39 @@
 * trivial
   weaker version of auto, for proof readibility
 
+* unfold
+  selective delta reduction, followed by other reductions
+
+* split (intro rule for conjunction)
+  split = intros; apply conj
+
+* left/right (intro rules for disjunction)
+  [left|right] = intros; apply [or_introl|or_intror]
+
+* elim [t|H] (apply respective elimination rule)
+
+* exists (intro rule for witness in existential)
+
+* reflexivity (apply refl_equal)
+! rewrite
+! pattern/revert
+
+! replace, cutrewrite, symmetry, transitivity
+
+* case [t]
+  replace all instances of inductive type t
+  with all possible cases for the value of t
+
+* discriminate
+  prove a=b -> False for inductive types.
+  some automation seems to be involved as well to
+  resolve trivial results. 
+
+* injection
+  applies the inference on equalities based on the rule
+  that constructors of inductive types are injective
+  
+* change
+  expands a goal into a precursor, good for reframing
+  a goal in combination with rewrite rules.
+  - Ex: Can be used to wrap both sides of a goal (p. 154)
