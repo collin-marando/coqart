@@ -248,3 +248,227 @@ Proof.
   intros. elim v; simpl; auto.
 Qed.
 
+(* Exercise 6.10 *)
+(* Define a function is_January that maps January
+  to True and any other month to False, using the
+  function month_rect *)
+
+Definition is_January : month -> Prop :=
+  month_rect _
+    True False False False False False
+    False False False False False False.
+
+(* Exercise 6.11 *)
+(* Use the same technique to build a proof of true =/= false. *)
+
+Goal (true <> false).
+Proof.
+  unfold not; intros H.
+  change ((fun b : bool =>
+    match b with | true => True | false => False end) false).
+  rewrite <- H.
+  trivial.
+Qed.
+
+(* Exercise 6.12 *)
+(* For the vehicle type (see Sect. 6.1.6), use the same
+  technique to build a proof that no bicycle is equal to a
+  motorized vehicle. *)
+
+Goal forall a b c, (bicycle a) <> (motorized b c).
+Proof.
+  unfold not; intros a b c H.
+  change ((fun v => match v with
+    | bicycle _ => True 
+    | motorized _ _ => False
+    end) (motorized b c)).
+  rewrite <- H.
+  trivial.
+Qed.
+
+(* Exercise 6.13 *)
+(* This exercise shows a use of discriminate and underlines
+  the danger of adding axioms to the system. The "theory"
+  introduced here proposes a description of rational numbers
+  as fractions with a non-zero denominator. An axiom is added
+  to indicate that two rational numbers are equal as soon as they
+  satisfy a classical arithmetic condition. *)
+
+Open Scope nat_scope. 
+Require Import Arith.
+Record RatPlus : Set :=
+  mkRat {top : nat; bottom : nat; bottom_condition : bottom <> O}.
+
+Axiom eq_RatPlus : forall r r' : RatPlus,
+  top r * bottom r' = top r' * bottom r -> r = r'.
+
+(* Prove that this theory is inconsistent (just construct a
+  proof of False). When this exercise is solved, you should
+  remove this construction from the environment, using the command
+  Reset eq_RatPlus. *)
+
+Goal False.
+Proof.
+  assert (H1: 1 <> 0); auto.
+  assert (H2: 2 <> 0); auto.
+  cut ((mkRat 1 1 H1) = (mkRat 2 2 H2)).
+  - discriminate.
+  - apply eq_RatPlus; simpl; reflexivity.
+Qed.
+
+Reset eq_RatPlus.
+
+(* Exercise 6.14 *)
+(* Reproduce the above discussion for the function
+  mult: compile a table describing convertibility
+  for simple patterns of the two arguments. *)
+
+Fixpoint mult (n m : nat) {struct n} : nat :=
+  match n with
+  | O   => O
+  | S p => (plus m (mult p m))
+  end.
+
+(* 
+  mult 0 0              => 0
+  mult 0 m              => m
+  mult (S p) 0          => 0 + (mult p 0)
+  mult (S p) m          => m + (mult p m)
+  mult (S (S p)) (S m)  => (S m) + (mult (S p) (S m))
+*)
+
+(* Exercise 6.15 *)
+(* Define a function of type nat->bool that only
+  returns true for numbers smaller than 3, in other
+  terms "S (S (S 0))." *)
+
+Definition lt3 n :=
+  match n with
+  | S (S (S n)) => false
+  | _ => true
+  end.
+
+(* Exercise 6.16 *)
+(* Define an addition function so that the principal
+  argument is second instead of first argument. *)
+
+Fixpoint plus' (n m : nat) {struct m} : nat :=
+  match m with
+  | O   => n
+  | S p => S (plus' n p)
+  end.
+    
+(* Exercise 6.17 *)
+(* Define a function sum_f that takes as arguments
+  a number n and a function f of type nat->Z and returns
+  the sum of all values of f for the natural numbers that
+  are strictly smaller than n. *)
+
+Fixpoint sum_f (n : nat) (f : nat->nat) : nat :=
+  match n with
+  | O   => O
+  | S n => (f n) + (sum_f n f)
+  end.
+
+(* Exercise 6.18 *)
+(* Define two_power:nat->nat so that "two_power n" is 2^n. *)
+
+Fixpoint two_power (n : nat) : nat :=
+  match n with
+  | O   => 1
+  | S n => 2 * (two_power n)
+  end.
+
+(* Exercise 6.19 *)
+(* What is the representation in the type _positive_
+  for numbers 1000, 25, 512? *)
+
+(* 1000 = 1111101000_b*)
+Check xO (xO (xO (xI (xO (xI (xI (xI (xI (xH))))))))).
+
+(* 25 = 11001_b *)
+Check xI (xO (xO (xI xH))).
+
+(* 512 = 100000000_b *)
+Check xO (xO (xO (xO (xO (xO (xO (xO xH))))))).
+
+(* Exercise 6.20 *)
+(* Build the function pos_even_bool of type _positive->bool_
+that returns the value true exactly when the argument is even. *)
+Definition pos_even_bool (p : positive) : bool :=
+  match p with
+  | xO _ => true
+  | _    => false
+  end.
+
+SearchPattern (positive->Z).
+
+(* Exercise 6.21 *)
+(* Build the function pos_div4 of type positive->Z that
+  maps any number z to the integer part of z/4. *)
+Definition pos_div4 (p : positive) : Z :=
+  match p with
+  | xO (xO p') | xO (xI p')
+  | xI (xO p') | xI (xI p') =>  Zpos p' 
+  | _ => 0
+  end.
+
+(* Exercise 6.22 *)
+(* Assuming there exists a function pos_mult that
+  describes the multiplication of two positive
+  representations and returns a positive representation,
+  use this function to build a function that multiplies
+  numbers of type Z and returns a value of type Z. *)
+
+Definition Zmult : Z->Z->Z := fun a b =>
+  match a, b with
+  | Zpos p, Zpos q | Zneg p, Zneg q => Zpos (Pos.mul p q)
+  | Zneg p, Zpos q | Zpos p, Zneg q => Zneg (Pos.mul p q)
+  | _, _ => 0%Z
+  end.
+
+(* Exercise 6.23 *)
+(* Build the inductive type that represents the language
+  of propositional logic without variables:
+    L = L/\L | L\/L | ~L | L => L | L_True | L_False *)
+
+Inductive prop :=
+  | L_And : prop->prop->prop
+  | L_Or : prop->prop->prop
+  | L_Not : prop->prop
+  | L_Imp : prop->prop->prop
+  | L_True : prop
+  | L_False : prop.
+
+(* Exercise 6.24 *)
+(* Every strictly positive rational number can be
+  obtained in a unique manner by a succession of
+  applications of functions N and D on the number one,
+  where N and D are defined by the following equations *)
+
+Inductive rational :=
+  | rI : rational
+  | rN : rational->rational
+  | rD : rational->rational.
+
+(* Exercise 6.25 *)
+(* The Coq library ZArith provides a function
+    Zeq_bool : Z -> Z -> bool
+  to compare two integer values and return a boolean
+  value expressing the result. Using this function define
+  a function value_present with the type
+    value_present : Z -> Z_btree -> bool
+  that determines whether an integer appears
+  in a binary tree. *)
+
+(* Exercise 6.26 *)
+(* Define a function power: Z->nat->Z to compute the power
+  of an integer and a function discrete_log:
+  positive->nat that maps any number p
+  to the number n such that 2^n =< p < 2^(n+1). *)
+
+Fixpoint discrete_log (p : positive) : nat :=
+  match p with
+  | xH => 0
+  | xO p' | xI p' => 1 + discrete_log p'
+  end.
