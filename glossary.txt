@@ -8,7 +8,7 @@ that the _E,Sigma |- t:A_ holds.
 * delta reduction   : unaliasing, aka unfolding
 * beta reduction    : argument application
 * zeta reduction    : local bindings, let
-* iota reduction    : inductive types???
+* iota reduction    : inductive constructor evaluation / pattern matching within fixpoints
 
 -- Definition 2 (Specification) --
 Every term whose type is Set is called a specification.

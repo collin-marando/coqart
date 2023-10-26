@@ -13,6 +13,8 @@
 * Goal          : Local Prop definition
 * Theorem/Lemma : Global Prop definition (opaque)
 
+* Fixpoint    : Order recursive functional definition 
+
 * Context     : Global?? constraint
 
 * Defined     : End Definition

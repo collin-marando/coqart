@@ -67,10 +67,13 @@
 * exists (intro rule for witness in existential)
 
 * reflexivity (apply refl_equal)
-! rewrite
-! pattern/revert
 
-! replace, cutrewrite, symmetry, transitivity
+* pattern/revert
+  reintroduce an indentifier t into the goal statement
+  pattern will construct a lambda function with input t
+  revert will construct a universal quantifier (forall)
+
+! rewrite, replace, cutrewrite, symmetry, transitivity
 
 * case [t]
   replace all instances of inductive type t
@@ -89,3 +92,8 @@
   expands a goal into a precursor, good for reframing
   a goal in combination with rewrite rules.
   - Ex: Can be used to wrap both sides of a goal (p. 154)
+
+* generalize
+  reintroduce an element from the context into the goal
+  statement as an inference.
+
