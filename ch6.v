@@ -1,5 +1,6 @@
 Require Import Nat.
 Require Import ZArith.
+Require Import FunctionalExtensionality.
 
 (* Exercise 6.1 *)
 (* Define an inductive type for seasons and then
@@ -472,3 +473,168 @@ Fixpoint discrete_log (p : positive) : nat :=
   | xH => 0
   | xO p' | xI p' => 1 + discrete_log p'
   end.
+
+(* Exercise 6.27 *)
+(* Define a function zero_present: Z_fbtree->bool that 
+  maps any tree x to true if and only ifa contains the
+  value zero. *)
+
+Inductive Z_btree : Set :=
+  Z_bleaf : Z_btree | Z_bnode : Z->Z_btree->Z_btree->Z_btree.
+
+Inductive Z_fbtree : Set :=
+ | Z_fleaf : Z_fbtree
+ | Z_fnode : Z -> (bool->Z_fbtree) -> Z_fbtree.
+
+Fixpoint zero_present (t : Z_fbtree) : bool :=
+  match t with
+  | Z_fleaf => false
+  | Z_fnode x f => (Z.eqb x 0)
+    || zero_present (f true) || zero_present (f false)
+  end.
+
+(* Exercise 6.28 *)
+(* Define a function that checks whether the zero value
+  occurs in an infinitely branching tree at a node 
+  reachable only by indices smaller than a number n. *)
+
+Inductive Z_inf_branch_tree: Set :=
+  | Z_inf_leaf : Z_inf_branch_tree
+  | Z_inf_node : Z -> (nat->Z_inf_branch_tree) -> Z_inf_branch_tree.
+
+Fixpoint or_f (n : nat) (f : nat -> bool) : bool :=
+  match n with
+  | O => false
+  | S n' => f n' || or_f n' f
+  end. 
+
+Fixpoint zero_present_inf (n : nat) (t : Z_inf_branch_tree) : bool :=
+  match t with
+  | Z_inf_leaf => false
+  | Z_inf_node x f => (Z.eqb x 0) 
+    || or_f n (fun i => zero_present_inf n (f i)) 
+  end.
+
+(* Exercise 6.29 *)
+(* Redo the proof of theorem plus_n_0, using only the tactics
+  intro, assumption, elim, simpl, apply, and reflexivity. *)
+
+Goal forall n:nat, n = n + 0.
+Proof.
+  intro.
+  elim n.
+  - reflexivity.
+  - intro m; intro H.
+    simpl. rewrite <- H; reflexivity.
+Qed.
+
+(* Exercise 6.30 *)
+(* This exercise uses the types Z_btree and Z_fbtree
+  introduced in Sects. 6.3.4 and 6.3.5.1. Define functions
+    f1: Z_btree -> Z_fbtree and f2: Z_fbtree -> Z_btree
+  that establish the most natural bijection between the
+  two types (see Sects. 6.3.4 and 6.3.5.1). Prove the 
+  following lemma:
+    forall t:Z_btree, f2 (f1 t) = t.
+  What is missing to prove the following statement?
+    forall t:Z_fbtree, f1 (f2 t) = t. 
+*)
+
+Print Z_btree.
+
+Fixpoint f1 (t : Z_btree) : Z_fbtree :=
+  match t with
+  | Z_bleaf => Z_fleaf
+  | Z_bnode x l r => Z_fnode x (fun b => if b then f1 l else f1 r)
+  end.
+
+Fixpoint f2 (t : Z_fbtree) : Z_btree :=
+  match t with
+  | Z_fleaf => Z_bleaf
+  | Z_fnode x f => Z_bnode x (f2 (f true)) (f2 (f false))
+  end.
+
+Goal forall t:Z_btree, f2 (f1 t) = t.
+Proof.
+  intros.
+  elim t; simpl.
+  - reflexivity.
+  - intros x l IHl r IHr.
+    rewrite IHl, IHr.
+    reflexivity.
+Qed.
+
+(* Second proof requires functional extensionality *)
+
+Theorem f_equal : forall (A B : Type) (f: A -> B) (x y: A),
+  x = y -> f x = f y.
+Proof. intros A B f x y eq. rewrite eq. reflexivity. Qed.
+
+Goal forall t:Z_fbtree, f1 (f2 t) = t.
+Proof.
+  intros.
+  elim t; simpl.
+  - reflexivity.
+  - intros x f H.
+    apply f_equal.
+    extensionality b.
+    elim b; apply H.
+Qed.
+
+(* Exercise 6.31 *)
+(* Prove forall n : nat, (mult2 n) = n+n (see Sect. 6.3.3) *)
+
+Fixpoint mult2 (n:nat) : nat :=
+  match n with
+  | O => O
+  | S p => S (S (mult2 p))
+  end.
+
+Goal forall n : nat, (mult2 n) = n+n.
+Proof.
+  intros.
+  elim n; simpl.
+  - reflexivity.
+  - intros; rewrite H.
+    f_equal.
+    apply plus_n_Sm.
+Qed.
+
+(* Exercise 6.32 *)
+(* The sum of the first n natural numbers is defined
+  with the following function: *)
+
+Fixpoint sum_n (n:nat) : nat :=
+  match n with
+  | O => O
+  | S p => S p + sum_n p
+  end.
+
+(* Prove the following statement: *)
+Goal forall n:nat, 2 * sum_n n = n*n + n.
+Proof.
+  intros.
+  elim n; simpl.
+  - reflexivity.
+  - intros m H.
+    rewrite <- plus_n_O in *.
+    repeat rewrite <- plus_n_Sm.
+    f_equal. f_equal. 
+    rewrite Nat.mul_succ_r.
+    rewrite <- H.
+    rewrite Nat.add_assoc, Nat.add_comm.
+    repeat rewrite Nat.add_assoc.
+    f_equal. f_equal.
+    apply Nat.add_comm.
+Qed.
+
+(* Exercise 6.33 *)
+(* Prove the following statement: *)
+Goal forall n:nat, n <= sum_n n.
+Proof.
+  intros. elim n; simpl.
+  - reflexivity.
+  - intros m H.
+    apply le_n_S.
+    apply Nat.le_add_r.
+Qed.
