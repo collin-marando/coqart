@@ -445,7 +445,16 @@ Inductive prop :=
 (* Every strictly positive rational number can be
   obtained in a unique manner by a succession of
   applications of functions N and D on the number one,
-  where N and D are defined by the following equations *)
+  where N and D are defined by the following equations:
+
+    N(x) = 1 + x, D(x) = 1 / (1 + (1 / x)) 
+  
+  We can associate any strictly positive rational number
+  with an element of an inductive type with one constructor
+  for one, and two other constructors representing the
+  functions N and D. Define this inductive type (see
+  the related exercise 6.44).
+*)
 
 Inductive rational :=
   | rI : rational
@@ -461,6 +470,15 @@ Inductive rational :=
     value_present : Z -> Z_btree -> bool
   that determines whether an integer appears
   in a binary tree. *)
+
+Inductive Z_btree : Set :=
+  Z_bleaf : Z_btree | Z_bnode : Z->Z_btree->Z_btree->Z_btree.
+
+Fixpoint value_present (z : Z) (t : Z_btree) : bool :=
+  match t with
+  | Z_bleaf => false
+  | Z_bnode x l r => (Zeq_bool x z) || value_present z l || value_present z r
+  end.
 
 (* Exercise 6.26 *)
 (* Define a function power: Z->nat->Z to compute the power
@@ -478,9 +496,6 @@ Fixpoint discrete_log (p : positive) : nat :=
 (* Define a function zero_present: Z_fbtree->bool that 
   maps any tree x to true if and only ifa contains the
   value zero. *)
-
-Inductive Z_btree : Set :=
-  Z_bleaf : Z_btree | Z_bnode : Z->Z_btree->Z_btree->Z_btree.
 
 Inductive Z_fbtree : Set :=
  | Z_fleaf : Z_fbtree
