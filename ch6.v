@@ -1,6 +1,8 @@
 Require Import Nat.
 Require Import ZArith.
 Require Import FunctionalExtensionality.
+Require Import List.
+Import ListNotations.
 
 (* Exercise 6.1 *)
 (* Define an inductive type for seasons and then
@@ -653,3 +655,290 @@ Proof.
     apply le_n_S.
     apply Nat.le_add_r.
 Qed.
+
+(* Exercise 6.34 *)
+(* Build a polymorphic function that takes a list as
+  argument and returns a list containing the first two
+  elements when they exist. *)
+(* Assumption: when one element is present, return it *)
+
+Definition first_two {A : Set} (l : list A) : list A :=
+  match l with
+  | cons a l' => match l' with
+    | nil => cons a nil
+    | cons b l'' => cons a (cons b nil)
+    end
+  | _ => nil
+  end.
+
+Compute first_two [3;4;5].
+Compute first_two [6].
+
+(* Exercise 6.35 *)
+(* Build a function that takes a natural number, n,
+  and a list as arguments and returns the list containing
+  the first n elements of the list when they exist. *)
+
+Fixpoint first_n {A : Set} (n : nat) (l : list A) : list A :=
+  match n, l with
+  | S n', cons x l' => cons x (first_n n' l')
+  | _, _ => nil
+  end.
+
+Compute first_n 2 [3;4;5].
+Compute first_n 5 [3;4;5].
+
+(* Exercise 6.36 *)
+(* Build a function that takes a list of integers as
+  argument and returns the sum of these numbers. *)
+
+Fixpoint sum_list (l : list Z) : Z :=
+  match l with
+  | nil => 0
+  | cons x l' => x + sum_list l'
+  end.
+
+Compute sum_list [1%Z;2%Z;3%Z;4%Z].
+
+(* Exercise 6.37 *)
+(* Build a function that takes a natural number n as
+  argument and builds a list containing n occurrences of
+  the number one. *)
+
+Fixpoint n_ones (n : nat) : list nat :=
+  match n with
+  | O => nil
+  | S n' => cons 1 (n_ones n')
+  end.
+
+Compute n_ones 6.
+
+(* Exercise 6.38 *)
+(* Build a function that takes a number n and returns the
+  list containing the integers from 1 to n, in this order. *)
+
+Fixpoint tri_list (n : nat) : list nat :=
+  match n with
+  | O => nil
+  | S O => [1]
+  | S n' => (tri_list n') ++ [n] 
+  end.
+
+Compute tri_list 7.
+
+(* Exercise 6.39 *)
+(* Define the other variant "nth_option'." The arguments
+  are given in the same order, but the principal argument
+  is the number n. Prove that both functions always give the
+  same result when applied on the same input. *)
+
+Fixpoint nth_option (A:Set) (n:nat) (l:list A) {struct l} : option A :=
+  match n, l with
+  | O , cons a tl => Some a
+  | S p, cons a tl => nth_option A p tl
+  | n, nil => None
+  end.
+
+Fixpoint nth_option' (A:Set) (n:nat) (l:list A) {struct n} : option A :=
+  match n, l with
+  | O , cons a tl => Some a
+  | S p, cons a tl => nth_option' A p tl
+  | _, nil => None
+  end.
+
+Goal forall A n l, nth_option A n l = nth_option' A n l.
+Proof.
+  intros A n.
+  elim n; simpl.
+  - destruct l; simpl; reflexivity.
+  - intros n' Heq l.
+    destruct l; simpl.
+    + reflexivity.
+    + apply Heq.
+Qed.
+
+(* Exercise 6.40 *)
+(* Prove: *)
+
+Goal forall (A : Set) (n : nat) (l : list A),
+  nth_option A n l = None -> length l <= n.
+Proof.
+  intros A n l; revert n.
+  elim l; simpl; intros.
+  - destruct n.
+    + reflexivity.
+    + apply Nat.le_0_l.
+  - destruct n.
+    + discriminate.
+    + apply le_n_S, H.
+      assumption.
+Qed.
+
+(* Exercise 6.41 *)
+(* Define a function that maps a type A in sort Set,
+  a function f of type A->bool, and a list t to the first
+  element x in l such that "f x" is true. *)
+
+Fixpoint filter_first {A : Set} (f : A->bool) (l : list A) : option A :=
+  match l with
+  | nil => None
+  | x :: l' => if f x then Some x else filter_first f l'
+  end.
+
+(* Exercise 6.42 *)
+(* Define the functions split and combine with the
+  following types and the usual behavior (transform a
+  list of pairs into a pair of lists containing the same
+  data, but with a different structure):
+    split : forall A B : Set, list A*B -> list A * list B
+    combine : forall A B : Set, list A -> list B -> list A*B
+  Write and prove a theorem that relates these two functions.
+*)
+
+Definition split : forall A B : Set, list (A*B) -> list A * list B :=
+  fun (A B : Set) =>
+  let cons_pair p l := (fst p :: fst l, snd p :: snd l) in
+  fix f (l : list (A*B)) :=
+    match l with
+    | nil => (nil, nil)
+    | p :: l' => cons_pair p (f l')
+    end.
+
+(* Assumption for combine:
+  Since there is no known default for types A and B,
+  the most reasonable action to take when combining
+  lists of unequal length is to truncate the longer
+  of the two.
+*)
+    
+Definition combine : forall A B : Set, list A -> list B -> list (A*B) :=
+  fun (A B : Set) =>
+  fix f (la : list A) (lb : list B) : list (A*B) :=
+    match la, lb with
+    | xa :: la', xb :: lb' => (xa, xb) :: f la' lb'
+    | _, _ => nil
+    end.
+
+Goal forall A B l, 
+  combine A B (fst (split A B l)) (snd (split A B l)) = l.
+Proof.
+  intros.
+  elim l; simpl; intros.
+  - reflexivity.
+  - destruct a as (ax, ay); simpl.
+    rewrite H.
+    reflexivity.
+Qed.
+
+(* Exercise 6.43 *)
+(* Build the type btree of polymorphic binary trees.
+  Define translation functions from Z_btree to (btree Z)
+  and vice versa. Prove that they are inverse to each other. *)
+
+Inductive btree (A : Set) : Set :=
+  bleaf : btree A | bnode : A -> btree A -> btree A -> btree A.
+    
+Fixpoint bt_Zbt (t : btree Z) : Z_btree :=
+  match t with
+  | bleaf _ => Z_bleaf
+  | bnode _ x l r => Z_bnode x (bt_Zbt l) (bt_Zbt r)
+  end.
+
+Fixpoint Zbt_bt (t : Z_btree) : btree Z :=
+  match t with
+  | Z_bleaf => bleaf Z
+  | Z_bnode x l r => bnode Z x (Zbt_bt l) (Zbt_bt r)
+  end.
+
+Goal forall t, bt_Zbt (Zbt_bt t) = t.
+Proof.
+  intros t.
+  elim t; simpl.
+  - reflexivity.
+  - intros x l IHl r IHr.
+    rewrite IHl, IHr.
+    reflexivity.
+Qed.
+
+Goal forall t, Zbt_bt (bt_Zbt t) = t.
+Proof.
+  intros t.
+  elim t; simpl.
+  - reflexivity.
+  - intros x l IHl r IHr.
+    rewrite IHl, IHr.
+    reflexivity.
+Qed.
+
+(* Exercise 6.44 *)
+(* This exercise continues Exercise 6.24 page 169. Build
+  the function that takes an element of the type defined
+  to represent rational numbers and returns the numerator
+  and denominator of the corresponding reduced fraction. *)
+
+(*
+  N(a/b) = 1 + a/b = b/b + a/b 
+    = (a + b) / b
+  D(a/b) = 1 / 1 + (1 / (a/b)) = 1 / 1 + (b/a)
+    = 1 / (a + b / b)
+    = b / (a + b)
+*)
+
+Fixpoint r_eval (r : rational) : nat*nat :=
+  match r with
+  | rI => (1, 1)
+  | rN r' => let (n, d) := (r_eval r') in (n + d, d)
+  | rD r' => let (n, d) := (r_eval r') in (n, n + d)
+  end.
+
+(* Exercise 6.45 *)
+(* The aim of this exercise is to implement a sieve
+  function that computes all the prime numbers that are
+  less than a given number. The first step is to define
+  a type of comparison values: *)
+
+Inductive cmp: Set :=
+  Less : cmp | Equal : cmp | Greater : cmp.
+
+(* Then three functions must be defined:
+  1. three_way_compare: nat->nat->cmp,
+    to compare two natural numbers.
+  2. update_primes: nat->(list nat*nat)->(list nat*nat)*bool, 
+    with a number k and a list of pairs (p,m) as arguments,
+    such that m is the smallest multiple of p greater than
+    or equal to k and returns the list of pairs (p, m') 
+    where m' is the smallest multiple of p strictly greater 
+    than k and a boolean value that is true if one of the m 
+    was equal to k.
+  3. prime_sieve: nat->(list nat*nat),
+    to map a number k to the list of pairs (p, m) where
+    p is a prime number smaller than or equal to k and
+    m is the smallest multiple of p greater than or
+    equal to k+1.
+
+  Prove that prime_sieve can be used to compute all the 
+  prime numbers smaller than a given k. *)
+
+Definition three_way_compare (a b : nat) : cmp :=
+  if a <? b then Less else if b <? a then Greater else Equal.
+
+Fixpoint update_primes (k : nat) (l : list (nat*nat)) : list(nat*nat) * bool :=
+  match l with
+  | nil => (nil, false)
+  | (p, m) :: l' => 
+      let (lx, b) := update_primes k l' in
+      match three_way_compare m k with
+      | Equal => ((p, m+p) :: lx, true)
+      | _ => ((p, m) :: lx, b)
+      end
+  end.
+
+Fixpoint prime_sieve (k : nat) : list (nat*nat) :=
+  match k with 
+  | 0 | 1 => nil
+  | S k' => 
+    let (l', b) := update_primes k (prime_sieve k') in
+    if b then l' else l' ++ [(k, 2*k)]
+  end.
+
+(* It works, but how do I prove it? *)
