@@ -89,8 +89,9 @@
   that constructors of inductive types are injective
   
 * change
-  expands a goal into a precursor, good for reframing
-  a goal in combination with rewrite rules.
+  replace the goal with an equivalent convertible 
+  statement. Good for reframing a goal to allow
+  for use of rewrite rules.
   - Ex: Can be used to wrap both sides of a goal
     with a cancellable pair of functions (p. 154)
 
