@@ -735,7 +735,7 @@ Compute tri_list 7.
   same result when applied on the same input. *)
 
 Fixpoint nth_option (A:Set) (n:nat) (l:list A) {struct l} : option A :=
-  match n, l with
+  match _, l with
   | O , cons a tl => Some a
   | S p, cons a tl => nth_option A p tl
   | n, nil => None
