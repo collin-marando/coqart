@@ -1,8 +1,11 @@
 Require Import Nat.
+Require Import Arith.
 Require Import ZArith.
 Require Import FunctionalExtensionality.
 Require Import List.
 Import ListNotations.
+
+Open Scope nat_scope.
 
 (* Exercise 6.1 *)
 (* Define an inductive type for seasons and then
@@ -218,6 +221,7 @@ Definition manhattan : plane -> plane -> Z :=
     let (x1, y1) := p1 in 
     let (x2, y2) := p2 in
     (Z.abs (x1 - x2)) + (Z.abs (y1 - y2)).
+Close Scope Z_scope.
 
 (* Exercise 6.9 *)
 (* What is the type of vehicle_rec? Use this function to define
@@ -297,8 +301,6 @@ Qed.
   to indicate that two rational numbers are equal as soon as they
   satisfy a classical arithmetic condition. *)
 
-Open Scope nat_scope. 
-Require Import Arith.
 Record RatPlus : Set :=
   mkRat {top : nat; bottom : nat; bottom_condition : bottom <> O}.
 
@@ -941,4 +943,167 @@ Fixpoint prime_sieve (k : nat) : list (nat*nat) :=
     if b then l' else l' ++ [(k, 2*k)]
   end.
 
-(* It works, but how do I prove it? *)
+Definition divides (x y : nat) : Prop := exists z, x * z = y.
+
+Definition prime (n : nat) : Prop :=
+  0 < n /\ forall k, divides k n -> k = 1 \/ k = n.
+
+Definition primes (n : nat) := map fst (prime_sieve n).
+
+(* It is very difficult to prove this generates all primes.
+  I've decided that, for this question, it is sufficient
+  to show an example.
+*)
+
+Compute (primes 100).
+
+(* Exercise 6.46 *)
+(* Prove one of the injection lemmas for the hnode construct: *)
+
+Inductive htree (A:Set) : nat -> Set :=
+  | hleaf: A -> htree A 0
+  | hnode: forall n:nat, A -> htree A n -> htree A n -> htree A (S n).
+
+(* The injection tactic is useless for this exercise; you
+  need to study and adapt the method from Sect. 6.2.3.2. *)
+
+(* Note: in the text, new syntax for pattern matching
+  is given, which allows for more constrained arguments.
+  The return type here is redundant, but can likely
+  serve as a type enforcement while troubleshooting. *)
+Definition right {A : Set} {n : nat} (h : htree A n) :=
+  match h in htree _ (S x) return htree A x with
+  | hnode _ p v t1 t2 => t2
+  end.
+
+(* A simpler implementation moves the contraint to the 
+  header. Note that in both cases, the hleaf case need
+  not apply, because the pattern matching knows hleaf
+  does not exists for all (S n) aka n > 0. The return
+  type can also now be defined in the header as
+  htree A n. For brevity, I've kept it out *)
+Definition left {A : Set} {n : nat} (h : htree A (S n)) :=
+  match h with
+  | hnode _ p v t1 t2 => t1
+  end.
+
+Goal forall (n:nat) (t1 t2 t3 t4 : htree nat n),
+  hnode nat n 0 t1 t2 = hnode nat n 0 t3 t4 -> t1 = t3.
+Proof.
+  intros.
+  change (
+    left (hnode nat n 0 t1 t2) = left (hnode nat n 0 t3 t4)).
+  rewrite H.
+  reflexivity.
+Qed.
+
+(* Exercise 6.47 *)
+(* Define a function that takes a number n and builds a
+  fixed-height tree of height n containing integer values. *)
+Fixpoint blank_htree (n : nat) : htree Z n :=
+  match n with
+  | O => hleaf Z 0%Z
+  | S n' => hnode Z n' 0%Z (blank_htree n') (blank_htree n')
+  end.
+
+(* Exercise 6.48 *)
+(* Define inductively the type binary_word used in
+  section 4.1.1.2 and define recursively the function
+  binary_word_concat. *)
+
+Inductive binary_word : nat -> Set := 
+  | be : binary_word 0
+  | bx {n : nat} : bool -> binary_word n -> binary_word (S n).
+
+Notation "0_ b" := (bx false b) (at level 0, right associativity).
+Notation "1_ b" := (bx true b) (at level 0, right associativity).
+
+Fixpoint concat {n m : nat} (b : binary_word n) (c : binary_word m) : binary_word (n + m) :=
+  match b in binary_word n return binary_word m -> binary_word (n + m) with
+  | be => fun _ => c
+  | @bx n' v b' => fun _ => bx v (concat b' c)
+  end c.
+
+Compute concat (bx true be) (bx false (bx true be)).
+
+(* Exercise 6.49 *)
+(* Define the function binary_word_or that computes the
+  bit-wise "or" operation of two words of the same length
+  (like the "|" operator in the C language). *)
+
+Definition hd {n : nat} (b : binary_word (S n)) : bool :=
+  match b with
+  | bx v _ => v
+  end.
+
+Definition tl {n : nat} (b : binary_word (S n)) : binary_word n :=
+  match b with
+  | bx _ b' => b'
+  end.
+
+Fixpoint binary_word_or {n : nat} (b c : binary_word n) : binary_word n :=
+  match b in binary_word n return binary_word n -> binary_word n with
+  | be => fun _ => be
+  | bx x b' => fun c' => bx (x || hd c') (binary_word_or b' (tl c'))
+  end c.
+
+Compute binary_word_or (0_ 0_ 1_ 1_ be) (0_ 1_ 0_ 1_ be).
+
+(* Exercise 6.50 *)
+(* Define a function with a dependent type that returns true
+  for natural numbers of the form 4n+1, false for numbers
+  of the form 4n+3, and n for numbers of the form 2n. *)
+
+(* The sequence of returns for 0 to n is: 
+    0 true 1 false 2 true 3 false ....
+  An alternating sequence of nat and bool. *)
+
+(* The return type depends on whether n is even or not *)
+Fixpoint bizzare_type (n : nat) : Set :=
+  match n with 
+  | 0 => nat 
+  | 1 => bool
+  | S (S n') => bizzare_type n'
+  end.
+(* Note: bizzare_type (S (S n)) = bizzare_type n *)
+
+(* The function must have the return type (bizzare type n)
+  Considering each half of the alternating sequence
+  seperately, we find two recursive relationships:
+  
+  For even n : f (S (S n)) -> S (f n)
+  For odd n : f (S (S n)) -> negb (f n)
+  
+  The function that acts upon the recursive case must
+  also be defined using a similar pattern to the typing
+*)
+
+Fixpoint bizzare_func (n : nat) : bizzare_type n -> bizzare_type n :=
+  match n with
+  | 0 => S
+  | 1 => negb
+  | S (S n) => bizzare_func n
+  end.
+
+(* Now, with a dependent type and recursive step function,
+  we can define the main function. This is effectively
+  two different recurrence relations zipped together on
+  the odds and evens. Every component built has abided
+  by this separation.
+*)
+Fixpoint bizzare (n : nat) : bizzare_type n :=
+  match n with
+  | 0 => 0
+  | 1 => true
+  | S (S n') => bizzare_func n' (bizzare n')
+  end.
+
+(* Exercise 6.51 *)
+(* Prove the following two propositions, which only
+  apparently contradict each other: *)
+  
+Goal forall x y: Empty_set, x=y.
+Proof. intros; elim x. Qed.
+
+Goal forall x y: Empty_set, ~x=y.
+Proof. intros; elim x. Qed.
