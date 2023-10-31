@@ -91,7 +91,8 @@
 * change
   expands a goal into a precursor, good for reframing
   a goal in combination with rewrite rules.
-  - Ex: Can be used to wrap both sides of a goal (p. 154)
+  - Ex: Can be used to wrap both sides of a goal
+    with a cancellable pair of functions (p. 154)
 
 * generalize
   reintroduce an element from the context into the goal
