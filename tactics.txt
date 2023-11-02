@@ -18,7 +18,7 @@
 
 * repeat (repeat and stop on fail)
 
----- Tactics ----
+---- Basic Tactics ----
 
 * intros (primitive typing rule, Lam)
   move implication premises from the goal to the context
@@ -46,9 +46,10 @@
 * assert [P]
   break goal Q into goals P and (P -> Q)
 
-* auto n 
+* auto n with [a b c ...]
   recursive combo of intros/assumption/apply to depth n
-  default 5
+  default 5. Can be enhanced to employ more tactics using
+  "with", followed by one or more database names
 
 * trivial
   weaker version of auto, for proof readibility
@@ -98,4 +99,21 @@
 * generalize
   reintroduce an element from the context into the goal
   statement as an inference.
+
+--- Advanced Tactics (Ch 7) ---
+
+* induction
+  like elim, but also introduces inductive
+  hypotheses into the context
+
+* destruct
+  like case, but also introduces the term equality
+  into the context
+
+* lazy/cbv [beta|delta|iota|zeta]
+  perform the specified reductions (see glossary).
+  cbv (call by value) reduces the arguments of a
+  function before reducing the body of the function.
+  lazy reduces only the subexpressions needed to
+  evaluate the function.
 
