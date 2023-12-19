@@ -178,19 +178,18 @@ Qed.
 (* Exercise 6.7 *)
 (* What is the type of plane_rec? *)
 
-Inductive plane : Set := point : Z -> Z -> plane.
-Check plane_rec.
+Inductive plane' : Set := point' : Z -> Z -> plane'.
+Check plane'_rec.
 
 (* forall P : plane -> Set, 
     (forall z z0 : Z, P (point z z0)) -> forall p : plane, P p *)
 
 (* Note: There is a discrepancy between the book and output seen here *)
 
-Reset plane.
 Record plane : Set := point {abscissa: Z; ordinate: Z}.
 
 (* Note (cont.): 
-  In the book, it states that this definition yeilds the same 
+  In the book, it states that this definition yields the same 
   printout as the defintion above:
     Inductive plane : Set := point : Z -> Z -> plane
   
@@ -300,6 +299,7 @@ Qed.
   as fractions with a non-zero denominator. An axiom is added
   to indicate that two rational numbers are equal as soon as they
   satisfy a classical arithmetic condition. *)
+Section RatPlusTemp.
 
 Record RatPlus : Set :=
   mkRat {top : nat; bottom : nat; bottom_condition : bottom <> O}.
@@ -321,7 +321,7 @@ Proof.
   - apply eq_RatPlus; simpl; reflexivity.
 Qed.
 
-Reset eq_RatPlus.
+End RatPlusTemp.
 
 (* Exercise 6.14 *)
 (* Reproduce the above discussion for the function
