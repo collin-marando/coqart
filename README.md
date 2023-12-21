@@ -1,4 +1,4 @@
-# Solutions to Castéran and Bertot's book on CIC
+# Solutions and Notes for Castéran and Bertot's book on CIC
 
 _Interactive Theorem Proving and Program Development:_ </br>
 _Coq’Art: The Calculus of Inductive Constructions_ </br>
