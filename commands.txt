@@ -30,3 +30,7 @@
 * Search        : Basic lookup 
 * SearchPattern : Search for universally quantified theorems
 * SearchRewrite : Search for rewrite theorems
+
+* Hint [Resolve/Extern/Rewrite...] [theorems ...] : [databases ...]
+ (* See "Programmable Proof Search" in the docs *)
+Add theorems to apply when using the given database.
