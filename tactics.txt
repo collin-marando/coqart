@@ -23,15 +23,15 @@
 * intros (primitive typing rule, Lam)
   move implication premises from the goal to the context
 
-* apply (primitive typing rule, App)
+* apply/eapply (primitive typing rule, App)
   _implication elimination_ using modus ponens, chaining
   the rule to generate multiple goals for each of the
   head types of the implication chain.
 
-* exact (direct proof)
+* exact/eexact (direct proof)
   solve the goal by providing a valid proof term
 
-* assumption (proof using context)
+* assumption/eassumption (proof using context)
   solve the goal using an existing context variable
 
 * idtac (no-op)
@@ -46,7 +46,7 @@
 * assert [P]
   break goal Q into goals P and (P -> Q)
 
-* auto n with [a b c ...]
+* auto/eauto n with [a b c ...]
   recursive combo of intros/assumption/apply to depth n
   default 5. Can be enhanced to employ more tactics using
   "with", followed by one or more database names
@@ -54,8 +54,13 @@
 * trivial
   weaker version of auto, for proof readibility
 
-* unfold
+* unfold [id ...]
   selective delta reduction, followed by other reductions
+
+* fold [id ...]
+  selective reversal of delta reduction, useful
+  for hiding messy fix constructs after delta reduction
+  of recursive terms 
 
 * split (intro rule for conjunction)
   split = intros; apply conj
@@ -65,7 +70,7 @@
 
 * elim [t|H] (apply respective elimination rule)
 
-* exists (intro rule for witness in existential)
+* exists/eexists (intro rule for witness in existential)
 
 * reflexivity (apply refl_equal)
 
@@ -117,3 +122,39 @@
   lazy reduces only the subexpressions needed to
   evaluate the function.
 
+* autorewrite with [a b c...]
+  repeats rewriting with give theorems,
+  always applying them in the same direction.
+  Can be paired with "Hint Rewrite thrm1 thrm2 : thrmx"
+  to rewrite using collections of theorems
+
+* subst [x y z]
+  applies rewrite for all hypotheses of the form
+  x = exp or exp = x, where x does not occur in exp,
+  replacing x with exp in all other hypotheses and the
+  goal. If arguments given, only those idents are replaced
+
+* ring
+  solves polynomial equations in a ring or semi-ring
+  Can be adapted to any ring or semi-ring with the help of
+  commands called "Add Ring" or "Add Semi Ring."
+
+* field
+  similar functionality to ring but for fields, includes division
+
+* omega
+  powerful tool for solving systems of linear equations and inequalities
+  of types Z and nat.
+
+* fourier
+  similar to omega, but for reals
+
+* tauto
+  decision procedure for intuitionistic propositional logic
+  unfolds negation and logical equivalence, and leverages
+  tautologies of conjunction and disjunction to solve more
+  goals than auto can.
+
+* intuition [tac]
+  uses the search tree built by tauto to generate a set of
+  equivalent simpler subgoals. Will also apply tactic if given.

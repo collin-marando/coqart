@@ -1,0 +1,44 @@
+* Tactic with ident arg
+  Ltac autoClear h := try (clear h; auto with arith ; fail).
+
+* Tactic with tactic arg
+  Ltac autoAfter tac := try (tac; auto with arith; fail).
+  [Requires ltac keyword when used]
+    Proof. autoAfter ltac:(clear HO H1). Qed.
+
+* Recursive tactics
+  Ltac le_S_star := apply le_n || (apply le_S; le_S_star)
+
+* Pattern matching
+  Ltac check_not_divides := 
+    match goal with
+    | [ |- (~divides ?X1 ?X2) ] =>
+      cut (X1<=X2); [ idtac | le_S_star ]; intros Hle;
+      rewrite (le_plus_minus _ _ Hle); apply not_divides_plus;
+      simpl; clear Hle; check_not_divides
+    | [ |- _ ] => apply not_divides_lt; unfold lt; le_S_star
+    end.
+
+* Naming matched hypotheses
+  Ltac contrapose H :=
+    match goal with
+    | [id: (~_) |- (~_)] => intro H; apply id
+    end.
+
+* Matching occurences in goal, failing in nested match blocks
+  Ltac S_to_plus_simp1 := 
+    match goal with
+    | [ |- context [(S ?X1)] ] =>
+      match X1 with
+      | 0%nat => fail 1
+      | _     => rewrite (S_to_plus_one X1); S_to_plus_simpl
+      end
+    | [ |- ] => idtac
+    end.
+
+* Using reduction in defined tactics
+  Ltac simp1_on e :=
+    let v := eval simpl in e in
+    match goal with
+    | [ |- context [e] ] => replace e with v; [idtac | auto]
+    end.
