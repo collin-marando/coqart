@@ -100,6 +100,8 @@
   for use of rewrite rules.
   - Ex: Can be used to wrap both sides of a goal
     with a cancellable pair of functions (p. 154)
+  - Also great for concisely undoing simplifications
+    of list appends into concats (Exercise 8.5 wp_o_head_c)
 
 * generalize
   reintroduce an element from the context into the goal
