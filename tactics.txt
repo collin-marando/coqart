@@ -22,6 +22,8 @@
 
 * intros (primitive typing rule, Lam)
   move implication premises from the goal to the context
+  decompose conjunction/existential using [a b c ...]
+  decompose disjunction using [a | b | c ...]
 
 * apply/eapply (primitive typing rule, App)
   _implication elimination_ using modus ponens, chaining
@@ -160,3 +162,12 @@
 * intuition [tac]
   uses the search tree built by tauto to generate a set of
   equivalent simpler subgoals. Will also apply tactic if given.
+
+* constructor
+  when the goal is an inductive predicate, applys the first
+  constructor from the definition that matches the arguments given
+
+* inversion [H]
+  given a (co)inductively defined hypothesis H, inversion creates
+  new goals for every constructor of H that isn't self-contradictory.
+  Each such goal includes the hypotheses needed to deduce the proposition
