@@ -67,10 +67,10 @@ Definition compose (A B C:Set) (f:A -> B) (g:B -> C) (a:A) := g (f a).
 Definition thrice (A:Set) (f:A->A) := compose f (compose f f).
 Unset Implicit Arguments.
 
-Check (thrice (A:=nat)).
-Print thrice.
-(* Using VSCoq+zsh, implicit arguments aren't shown *)
-(* Nonetheless, the implicit argument are:
+Print Implicit compose.
+Print Implicit thrice.
+
+(* The implicit arguments are:
     A B C in compose
     A in thrice
 *)
