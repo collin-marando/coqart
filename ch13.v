@@ -1016,7 +1016,7 @@ Proof.
   - apply bisimT_sym.
 Qed.
 
-(* Some lemmas used by discriminate and autorewrite in the proofs to follow *)
+(* Two lemmas used by autorewrite in the proof to follow *)
 
 Lemma Ltree_label_dO_LBin : forall (A:Set) (a:A) p l r,
   Ltree_label (dO :: p) (LBin a l r) = Ltree_label p l.
@@ -1026,17 +1026,8 @@ Lemma Ltree_label_d1_LBin : forall (A:Set) (a:A) p l r,
   Ltree_label (d1 :: p) (LBin a l r) = Ltree_label p r.
 Proof. auto. Qed.
 
-Lemma Ltree_label_nil_LLeaf : forall (A:Set) (a:A),
-  Ltree_label [] LLeaf (A := A) = None.
-Proof. auto. Qed.
-
-Lemma Ltree_label_nil_LBin : forall (A:Set) (a:A) a l r,
-  Ltree_label [] (LBin a l r) (A := A) = Some a.
-Proof. auto. Qed.
-
 Hint Rewrite 
-  Ltree_label_dO_LBin Ltree_label_d1_LBin
-  Ltree_label_nil_LLeaf Ltree_label_nil_LBin : core.
+  Ltree_label_dO_LBin Ltree_label_d1_LBin : core.
 
 (* 13.20: Relation between bisimilarT and Ltree_label *)
 
@@ -1170,4 +1161,413 @@ Proof.
   inversion H.
   rewrite graft_LBin_unfold.
   constructor; auto.
+Qed.
+
+(* End 13.24 *)
+
+Definition bisimulation (A:Set) (R:LList A -> LList A -> Prop) :=
+  forall l1 l2: LList A,
+    R l1 l2 -> 
+    match l1 with
+    | LNil => l2 = LNil 
+    | LCons a l'1 =>
+      match l2 with
+      | LNil => False
+      | LCons b l'2 => a = b /\ R l'1 l'2
+      end
+    end.
+
+(* Exercise 13.27 *)
+(* Prove the following theorem (Park principle): *)
+
+Theorem park_principle: forall (A: Set) (R:LList A -> LList A -> Prop),
+  bisimulation R -> forall l1 l2:LList A, R l1 l2 -> bisimilar l1 l2.
+Proof.
+  intro A.
+  cofix H.
+  intros R Hbisim l1 l2 HR.
+  destruct l1; destruct l2; auto;
+  apply Hbisim in HR; inversion HR; subst.
+  constructor; eauto.
+Qed.
+
+(* Exercise 13.28 *)
+(* Use the Park principle to prove that the following two streams are bisimilar: *)
+
+CoFixpoint alter : LList bool := LCons true (LCons false alter).
+Definition alter2 : LList bool := omega (LCons true (LCons false LNil)).
+
+(* Hint: consider the following binary relation and prove that it is a bisimulation: *)
+
+Definition R (l1 l2:LList bool) : Prop :=
+  l1 = alter /\ l2 = alter2 \/
+  l1 = LCons false alter /\ l2 = LCons false alter2.
+
+Lemma bisimulation_R : bisimulation R.
+Proof.
+  unfold bisimulation; intros.
+  inversion H as [[HA1 HA2] | [HA1 HA2]]; subst.
+  - unfold alter, alter2, omega.
+    rewrite general_omega_LCons; split; auto.
+    right; split; auto.
+    rewrite general_omega_LCons; f_equal.
+    rewrite general_omega_shoots_again; auto.
+  - split; auto.
+    left; auto.
+Qed.
+
+Lemma bisim_alters : bisimilar alter alter2.
+Proof.
+  eapply park_principle.
+  - apply bisimulation_R.
+  - left; auto.
+Qed.
+
+(* End 13.28 *)
+
+Definition satisfies {A : Set} (l:LList A) (P:LList A -> Prop) : Prop := P l.
+Hint Unfold satisfies : core.
+
+Inductive Atomic {A : Set} (At:A -> Prop) : LList A -> Prop := 
+  Atomic_intro : forall (a:A) (l:LList A), At a -> Atomic At (LCons a l).
+  
+Hint Resolve Atomic_intro : core.
+
+Inductive Next {A : Set} (P:LList A -> Prop) : LList A -> Prop := 
+  Next_intro : forall (a:A) (l:LList A), P l -> Next P (LCons a l).
+
+Hint Resolve Next_intro : core.
+
+Inductive Eventually {A : Set} (P:LList A -> Prop) : LList A -> Prop := 
+  | Eventually_here :
+    forall (a:A) (l: LList A), P (LCons a l) -> Eventually P (LCons a l)
+  | Eventually_further:
+    forall (a:A) (l:LList A), 
+      Eventually P l -> Eventually P (LCons a l).
+
+Hint Resolve Eventually_here Eventually_further : core.
+
+(* Exercise 13.29 *)
+(* Here is a lemma and its proof: *)
+Theorem Eventually_of_LAppend :
+  forall {A : Set} (P:LList A -> Prop) (u v:LList A), Finite u ->
+    satisfies v (Eventually P) -> satisfies (LAppend u v) (Eventually P).
+Proof.
+  unfold satisfies; induction 1; intros;
+  autorewrite with core; auto.
+Qed.
+
+(* What is the role of finiteness? Is it really necessary?
+  If it is, build a counterexample. *)
+
+Section counterexample.
+
+  Let CoFixpoint inf_repeat {A : Set} (a : A) : LList A :=
+    LCons a (inf_repeat a).
+
+  Lemma inf_repeat_unfold : forall A a,
+    inf_repeat a = LCons a (inf_repeat a) (A := A).
+  Proof.
+    intros.
+    LList_unfold (inf_repeat a).
+    simpl; auto.
+  Qed.
+
+  Let starts_with_true (l : LList bool) : Prop :=
+    match l with
+    | LCons true _ => True
+    | _ => False
+    end.
+
+  Let u := inf_repeat false.
+  Let v := LCons true LNil.
+
+  Lemma bisim_c : bisimilar u (LAppend u v).
+  Proof.
+    apply LAppend_of_Infinite_bisim.
+    unfold u.
+    cofix H.
+    rewrite inf_repeat_unfold.
+    auto.
+  Qed.
+
+  Lemma LNth_c : forall n, LNth n (LAppend u v) = Some false.
+  Proof.
+    intro; symmetry.
+    replace (Some false) with (LNth n u).
+    - apply bisimilar_LNth, bisim_c.
+    - induction n; simpl; auto.
+  Qed.
+
+  Lemma satisfies_EP_exists : forall l,
+    satisfies l (Eventually starts_with_true) -> exists n, LNth n l = Some true.
+  Proof.
+    induction 1.
+    - destruct a; inversion H.
+      exists 0; auto.
+    - destruct IHEventually as [n Hn].
+      exists (S n); auto.
+  Qed.
+
+  Lemma not_satisfies_c : ~ satisfies (LAppend u v) (Eventually starts_with_true).
+  Proof.
+    intro H.
+    apply satisfies_EP_exists in H as [n Hn].
+    rewrite LNth_c in Hn.
+    inversion Hn.
+  Qed. 
+
+End counterexample.
+ 
+Definition Eventually_of_LAppend_general := 
+  forall (B:Set) (P:LList B -> Prop) (u v:LList B),
+    satisfies v (Eventually P) -> satisfies (LAppend u v) (Eventually P).
+
+Goal ~ Eventually_of_LAppend_general.
+Proof.
+  unfold Eventually_of_LAppend_general.
+  intro H.
+  apply not_satisfies_c, H.
+  left; auto.
+Qed.
+
+(* End 13.29 *)
+
+(* Exercise 13.30 *)
+(* Prove that every stream satisfying "Always P" is infinite. *)
+
+CoInductive Always {A : Set} (P:LList A -> Prop) : LList A -> Prop := 
+  Always_LCons : forall (a:A) (l: LList A),
+    P (LCons a l) -> Always P l -> Always P (LCons a l).
+
+Lemma Always_Infinite : forall A P l, Always P l -> Infinite l (A := A).
+Proof.
+  cofix HInd.
+  intros.
+  inversion H.
+  constructor; eauto.
+Qed.
+
+(* Exercise 13.31 *)
+(* Prove that every suffix of the stream "repeat a" starts with a: *)
+Lemma always_a : forall A a, satisfies (repeat a) (Always (Atomic (eq a))) (A := A).
+Proof.
+  unfold satisfies.
+  cofix H.
+  intros.
+  rewrite repeat_unfold.
+  constructor; auto.
+Qed.
+
+(* End 13.31 *)
+
+Definition F_Infinite {A:Set} (P:LList A -> Prop) : LList A -> Prop :=
+  Always (Eventually P).
+
+(* Exercise 13.32 *)
+(* Show that the infinite sequence w where a and b alternate contains
+  an infinity of occurrences of a. *)
+
+(* Note: Given that I've opted to remove the LTL section and make
+  this portion read more generally, a and b don't exist here. An
+  equivalent proof can be done using any two values of the chosen type A. *)
+
+CoFixpoint alt_inf {A : Set} (a b: A) : LList A :=
+  LCons a (LCons b (alt_inf a b)).
+
+Lemma alt_inf_unfold : forall A a b,
+  alt_inf a b = LCons a (LCons b (alt_inf a b)) (A := A).
+Proof.
+  intros.
+  LList_unfold (alt_inf a b);
+  simpl; auto.
+Qed.
+
+Lemma Inf_alternate_F_Infinite : forall A a b,
+  satisfies (alt_inf a b) (F_Infinite (Atomic (eq a))) (A := A).
+Proof.
+  unfold satisfies, F_Infinite.
+  cofix H.
+  intros.
+  rewrite alt_inf_unfold.
+  constructor.
+  - left; auto.
+  - constructor; auto.
+    right. rewrite alt_inf_unfold.
+    left; auto.
+Qed.
+
+(* End 13.32 *)
+
+Definition G_Infinite {A : Set} (P:LList A -> Prop) : LList A -> Prop :=
+  Eventually (Always P).
+
+(* Exercise 13.33 *)
+(* Show the following theorems: *)
+
+Lemma LAppend_G_Infinite: forall A (P:LList A -> Prop) (u v: LList A),
+  Finite u -> satisfies v (G_Infinite P)
+    -> satisfies (LAppend u v) (G_Infinite P).
+Proof.
+  induction 1; intro Hs;
+  autorewrite with core; auto.
+  unfold satisfies, G_Infinite in IHFinite.
+  right; auto.
+Qed.
+
+Lemma Always_G_Inf : forall A P l,
+  Always P l -> G_Infinite P l (A := A).
+Proof.
+  intros.
+  inversion H.
+  constructor.
+  constructor; auto.
+Qed.
+
+Lemma LAppend_G_Infinite_R : forall {A : Set} (P:LList A -> Prop) (u v: LList A),
+  Finite u -> satisfies (LAppend u v) (G_Infinite P)
+    -> satisfies v (G_Infinite P).
+Proof.
+  unfold satisfies.
+  induction 1 as [|a l HF IH];
+  autorewrite with core; intros H; auto.
+  inversion H; auto; subst.
+  inversion H1; subst.
+  apply IH, Always_G_Inf; auto.
+Qed.
+
+(* End 13.33 *)
+
+Record automaton : Type := 
+  mk_auto {
+    states : Set; actions : Set;
+    initial : states;
+    transitions: states -> actions -> list states
+  }.
+
+Definition deadlock (A: automaton) (q:states A) :=
+  forall a:actions A, @transitions A q a = nil.
+
+Unset Implicit Arguments.
+
+CoInductive Trace (A: automaton) : states A -> LList (actions A) -> Prop :=
+  | empty_trace: forall q:states A, deadlock A q -> Trace A q LNil
+  | lcons_trace: forall (q q': states A) (a:actions A) (l:LList (actions A)),
+    In q' (transitions A q a) -> Trace A q' l -> Trace A q (LCons a l).
+
+Set Implicit Arguments.
+
+(* Exercise 13.34 *** We consider the following automaton: *)
+
+(* states *)
+Inductive st : Set := q0 | q1 | q2.
+(* actions *)
+Inductive acts : Set := a | b.
+(* transitions *)
+Definition trans (q:st)(x:acts) : list st :=
+  match q, x with
+  | q0, a => cons q1 nil
+  | q0, b => cons q1 nil
+  | q1, a => cons q2 nil
+  | q2, b => cons q2 (cons q1 nil)
+  | _ , _ => nil (A := _)
+  end.
+
+Definition A1 := mk_auto q0 trans.
+
+(* Draw this automaton, then show that every trace for A, contains an
+  infinite number of b actions: *)
+
+(* A drawing of the automaton reveals that q2 is reachable from any state
+  in a finite number of actions, and its only action is a b action.
+  We can also observe that from any state, passing through q2 eventually is
+  guaranteed.
+
+  Therefore, the proof will be centered around showing that:
+    - There are no deadlocks
+    - We MUST arrive at q2 eventually from any other state
+    - Passing through state q2 results in a b action
+*)
+
+(* First, we must prove that the trace is infinite, i.e. no deadlocks *)
+
+Lemma no_deadlocks : forall q, ~ deadlock A1 q.
+Proof.
+  unfold deadlock.
+  intros q; intro H.
+  destruct q.
+  - specialize H with a; inversion H.
+  - specialize H with a; inversion H.
+  - specialize H with b; inversion H.
+Qed.
+
+(* Now we show that from q0 and q1, and for any trace t,
+  we will arrive at q2 in a finite number of steps *)
+
+(* Proving from_q1 first, as it can be used to to shorten the
+  proof for from_q0, since the trace from q0 to q2 goes through q1 *)
+
+Lemma from_q1 : forall t,
+  Trace A1 q1 t -> exists t', Trace A1 q2 t' /\
+    t = LCons a t'.
+Proof.
+  intros.
+  inversion_clear H as [? Hdl|? q' x l HIn H'].
+  - contradict Hdl; apply no_deadlocks.
+  - destruct x; simpl in *;
+    inversion_clear HIn; subst.
+    + exists l; auto.
+    + contradiction.
+Qed.
+
+Lemma from_q0 : forall t,
+  Trace A1 q0 t -> exists t', Trace A1 q2 t' /\
+    (t = LCons a (LCons a t') \/ t = LCons b (LCons a t')).
+Proof.
+  intros.
+  inversion_clear H as [? Hdl|? q' x l HIn H'].
+  - contradict Hdl; apply no_deadlocks.
+  - destruct q'; destruct x; simpl in *;
+    inversion_clear HIn.
+    all: try discriminate; try contradiction; clear H.
+    all: apply from_q1 in H' as [t' [H Heq]]; subst;
+    exists t'; auto.
+Qed.
+
+(* Now we show that from q2, the follow action must be a b action *)
+
+Lemma from_q2 : forall t,
+  Trace A1 q2 t -> exists t', 
+    (Trace A1 q1 t' \/ Trace A1 q2 t') /\ t = LCons b t'.
+Proof.
+  intros.
+  inversion_clear H as [? Hdl|? q' x l HIn H'].
+  - contradict Hdl; apply no_deadlocks.
+  - destruct x; simpl in *; [contradiction|].
+    destruct HIn as [|[|]]; subst; try contradiction.
+    all: exists l; auto.
+Qed.
+
+(* Now we can prove the final statement *)
+
+Theorem Infinite_bs : forall (q:st) (t:LList acts),
+  Trace A1 q t -> satisfies t (F_Infinite (Atomic (eq b))).
+Proof.
+  unfold satisfies, F_Infinite.
+  cofix HInd.
+  intros q t HT.
+  destruct q.
+  - apply from_q0 in HT as [t' [HT [|]]]; subst.
+    + apply from_q2 in HT as [t'' [[HT | HT] ?]]; subst.
+      all: repeat (constructor; auto).
+      all: eauto.
+    + constructor; auto.
+      constructor.
+      * apply from_q2 in HT as [t'' [[HT | HT] ?]]; subst; auto.
+      * eauto.
+  - apply from_q1 in HT as [t' [HT ?]]; subst.
+    constructor; eauto.
+    apply from_q2 in HT as [t'' [[HT | HT] ?]]; subst; auto.
+  - apply from_q2 in HT as [t'' [[HT | HT] ?]]; subst; auto.
+    all: constructor; eauto.
 Qed.
