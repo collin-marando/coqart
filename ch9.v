@@ -437,8 +437,8 @@ Definition sqrt_aux (sr: Z*Z) (x: Z): Z*Z :=
   let s := fst sr in
   let r := snd sr in
   match (Z_lt_ge_dec (4*r+x) (4*s+1)) with
-  | left Hle => (2*s, 4*r+x)
-  | right Hgt => (2*s+1, 4*r+x-(4*s+1))
+  | left Hlt => (2*s, 4*r+x)
+  | right Hge => (2*s+1, 4*r+x-(4*s+1))
   end.
 
 Fixpoint sqrt (n: positive): Z*Z :=
