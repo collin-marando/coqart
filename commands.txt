@@ -34,3 +34,5 @@
 * Hint [Resolve/Extern/Rewrite...] [theorems ...] : [databases ...]
  (* See "Programmable Proof Search" in the docs *)
 Add theorems to apply when using the given database.
+
+* Scheme (See Chapter 14, pg. 394 and pg. 401)

@@ -25,7 +25,7 @@
     | [id: (~_) |- (~_)] => intro H; apply id
     end.
 
-* Matching occurences in goal, failing in nested match blocks
+* Matching occurrences in goal, failing in nested match blocks
   Ltac S_to_plus_simp1 := 
     match goal with
     | [ |- context [(S ?X1)] ] =>
@@ -42,3 +42,15 @@
     match goal with
     | [ |- context [e] ] => replace e with v; [idtac | auto]
     end.
+
+* Generating unique names for introduced hypotheses
+Ltac insterKeep H :=
+  let H' := fresh "H'" in
+    generalize H; intro H'; insterU H'.
+
+* Matching on passed hypotheses & returning errors on mismatch
+Ltac invert_exec H := 
+  match type of H with
+  | (exec _ _ _) => inversion H; clear H; subst; invert_cleanup
+  | _ => fail "expected lemma in the form: exec ?s ?i ?s'"
+  end.
