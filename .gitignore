@@ -2,3 +2,7 @@
 *.aux
 *.glob
 *.mli
+*.vo
+*.vok
+*.vos
+.*
