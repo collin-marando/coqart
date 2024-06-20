@@ -1156,9 +1156,21 @@ Inductive forLoops : inst -> Prop :=
       forall i1 i2: inst,
         forLoops i1 -> forLoops i2 -> forLoops (Sequence i1 i2).
 
+(* We need a well-founded induction principle for the WhileDo loop case.
+  The constructor for aForLoop includes a predicate that takes two states,
+  which when shown to evaluate the boolean condition and execute the body,
+  will return a well-founded relationship between the states. What this means
+  is that if the "for-loop" can iterate, then there is some expression which  
+  when evaluated will decrease with each iteration. This decreasing sequence
+  can be used to establish a well-founded relation. *)
+
+(* For brevity, we create a predicate that describes the state requirements.
+  Note that the states are the tail arguments; given an instruction and boolean
+  expression, we get a predicate of type "state->state->Prop" *)
 Definition next_state (i : inst) (b : bExp) (s1 s2 : state) :=
   evalB s2 b = Some true /\ exec s2 i s1.
 
+(* Next we show that the states between each iteration have a well-founded relation *)
 Theorem next_state_while_wf : forall i b,
   forLoops (WhileDo b i) -> well_founded (next_state i b).
 Proof.
@@ -1171,9 +1183,7 @@ Proof.
   apply Zwf_well_founded.
 Qed.
 
-Definition exec_dec s i := {s':state | exec s i s'} + {forall s':state, ~exec s i s'}.
-
-(* Tactic for eliminating option equalities and duplicates *)
+(* Tactic for eliminating matching option equalities and duplicates *)
 Ltac invert_cleanup :=
   match goal with
   | [ H1: ?H, H2: ?H |- _] => clear H2; invert_cleanup
@@ -1196,6 +1206,9 @@ Ltac not_executable :=
   let HF := fresh "HF" in
   let ns := fresh "ns" in
     right; intros ns; intro HF; invert_exec HF.
+
+(* Target specification *)
+Definition exec_dec s i := {s':state | exec s i s'} + {forall s':state, ~exec s i s'}.
 
 (* Separate lemma for while loop for cleanliness:
   If the while loop is a "for-loop" and its body is decidedly executable for any state,
@@ -1237,7 +1250,9 @@ refine (fix espec s i h :=
   | Sequence i1 i2 => fun h' => _
   end (refl_equal i)
 ).
+(* Skip *)
 - left; eexists; constructor.
+(* Assign *)
 - refine (match (evalA s e) as E return _ = E -> _ with
   | Some n => fun Heval =>
       (match (update s v n) as U return _ = U -> _ with
@@ -1250,6 +1265,7 @@ refine (fix espec s i h :=
     eapply execAssign; eauto.
   + not_executable.
   + not_executable.
+(* Sequence *)
 - assert (forLoops i1 /\ forLoops i2) as [F1 F2].
   subst; inversion h; auto.
   eapply espec in F1 as [[s1 F1] | F1].
@@ -1262,6 +1278,7 @@ refine (fix espec s i h :=
     eapply F2; eauto.
   * not_executable.
     eapply F1; eauto.
+(* WhileDo *)
 - subst i.
   apply exec_while_aux. auto.
   intros; apply espec.
