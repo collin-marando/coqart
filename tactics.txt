@@ -171,3 +171,8 @@
   given a (co)inductively defined hypothesis H, inversion creates
   new goals for every constructor of H that isn't self-contradictory.
   Each such goal includes the hypotheses needed to deduce the proposition
+
+--- Other Tactics ---
+* absurd (P)
+* autorewrite with _ (example pg. 362)
+* inversion_clear
