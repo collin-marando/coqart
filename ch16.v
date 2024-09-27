@@ -99,19 +99,18 @@ Proof.
     lia.
   - simpl Init.Nat.pred in Hprime. 
     assert (HposZ: (0 < Z_of_nat (S (S p)))%Z) by lia.
-    eapply (check_range_correct _ _ _ HposZ _ Hprime).
+    unshelve eapply (check_range_correct _ _ _ HposZ _ Hprime); auto.
     rewrite Zabs2Nat.id.
     exists k; repeat split; auto; simpl.
     assert (k <= (S (S p))).
     destruct Heq as [q Heq].
     apply (divisor_smaller (S (S p)) q); auto; lia.
     lia.
-  Unshelve. auto.
 Qed.
 
 (* Exercise 16.2 *)
 (* Show that when a number n is the product of two numbers p and a,
-  then one of these numbers is smaller than the square root of n. 
+  then one of these numbers is "smaller than" the square root of n. 
   Use this lemma to justify a method by reflection that only verifies 
   odd divisors smaller than the square root. *)
 
@@ -190,25 +189,6 @@ Definition which_odds (z : Z) : Z * Z :=
   | _ => (0, 1)
   end.
 
-Lemma which_odds_i_pos: forall z p i,
-  which_odds z = (i, p) -> 0 <= i.
-Proof.
-  intros z p i H.
-  destruct z; simpl in *.
-  - inversion H; lia.
-  - destruct p0; inversion H; lia.
-  - inversion H; lia.
-Qed.
-
-Lemma which_odds_consistent: forall z p i,
-  0 < z -> which_odds z = (i, p) -> 2*i+1 = p.
-Proof.
-  destruct z; try discriminate.
-  intros q i _; revert q i.
-  induction p; simpl; intros q i Heq.
-  all: inversion Heq; auto.
-Qed.
-
 (* Then, we design a function that, for some number n, checks only
   for divisibilty by 2 and odd factors less than or equal to some odd p.
   Given that this function is recursive but reasons about integers, which
@@ -257,10 +237,8 @@ Proof.
   destruct (divides p (Z.of_nat n)) eqn:Hdiv; try discriminate.
   destruct (le_lt_eq_dec x (2 * S i + 1)) as [Hlt1 | Hxeq]; [lia| | ].
   destruct (le_lt_eq_dec x (2 * S i)) as [Hlt | Hxeq]; [lia| | ]; clear Hlt1.
-  - eapply (IHi (p-2) _ Hcheck x). Unshelve.
-    + lia.
-    + exists y; assumption.
-    + lia.
+  - unshelve eapply (IHi (p-2) _ Hcheck x); try lia.
+    exists y; assumption.
   - apply (check_factors_correct_2 _ _ _ Hgt Hcheck).
     exists (y * S i)%nat; lia.
   - unfold divides in Hdiv.
@@ -273,18 +251,13 @@ Proof.
       apply Z_mod_mult.
 Qed.
 
-Lemma Z_to_nat_to_Z: forall z : Z, 0 <= z -> Z.of_nat (Z.to_nat z) = z.
-Proof.
-  intros. destruct z; try lia.
-Qed.
-
 (* Now we can use the factor checking function to define a primality test *)
 
 Definition is_prime (n : nat) :=
   let sz := (Z.sqrt (Z.of_nat n)) in 
   let (i, p) := which_odds sz in
   match n with
-  | S (S n') => negb (check_factors (Z.to_nat i) p (Z.of_nat n))
+  | S (S n') => negb (check_factors (Z.abs_nat i) p (Z.of_nat n))
   | _ => false
   end.
 
@@ -292,81 +265,52 @@ Theorem is_prime_correct: forall n,
   is_prime n = true ->
     ~(exists x:nat, x <> 1 /\ x <> n /\ (exists y:nat, n = y*x))%nat.
 Proof.
-  destruct n; try discriminate.
+  (* 1 < n *)
+  destruct n; try discriminate;
   destruct n as [|n']; try discriminate.
   remember (S (S n')) as n.
+  
   unfold is_prime.
   destruct (which_odds (Z.sqrt (Z.of_nat n))) as [i p] eqn:Hwhich.
-
-  assert (Hip: 2 * i + 1 = p).
-  {
-    apply (which_odds_consistent (Z.sqrt (Z.of_nat n))); auto.
-    subst; simpl. lia.
-  }
-
-  assert (Hipos: 0 <= i).
-  {
-    eapply (which_odds_i_pos (Z.sqrt (Z.of_nat n))).
-    eauto. 
-  }
-
-  rewrite Heqn, Bool.negb_true_iff.
+  rewrite Heqn, Bool.negb_true_iff, <- Heqn.
   intros Hcheck.
 
+  (* sqrt n is a positive number *)
   case_eq (Z.sqrt (Z.of_nat n)).
   all: try solve [ destruct n; discriminate].
-
-  - intros p0 H.
-    rewrite H in Hwhich; simpl in Hwhich.
-    intros [x [Hneq1 [Hneqn [y Heqnyx]]]]; rewrite <- Heqn in *.
-
-    assert (Hex: exists k:nat, (1 < (Z_of_nat k) <= (Z.sqrt (Z_of_nat n))) /\
-               (exists q:nat, n=(k*q)%nat)).
-    
-    {
-      destruct (factor_le_sqrt (Z_of_nat n) (Z_of_nat y) (Z_of_nat x)).
-      - split.
-        + lia.
-        + assert (Hle: (y <= n)%nat).
-          eapply divisor_smaller; eauto; lia.
-          destruct (le_lt_eq_dec y n Hle).
-          * lia.
-          * subst y.
-            assert (x = 1)%nat.
-            destruct x; lia.
-            contradiction.
-      - lia.
-      - exists y.
-        repeat split.
-        + destruct y; lia.
-        + auto.
-        + exists x; auto.
-      - exists x.
-        repeat split.
-        + lia.
-        + auto.
-        + exists y; lia. 
-    }
+  
+  intros p0 H [x [Hneq1 [Hneqn [y Heqnyx]]]].
+  assert (Hex: exists k:nat, (1 < (Z_of_nat k) <= (Z.sqrt (Z_of_nat n))) /\
+              (exists q:nat, n=(k*q)%nat)).
+  {
+    destruct (factor_le_sqrt (Z_of_nat n) (Z_of_nat y) (Z_of_nat x)).
+    - split.
+      + lia.
+      + assert (Hle: (y <= n)%nat).
+        eapply divisor_smaller; eauto; lia.
+        destruct (le_lt_eq_dec y n Hle).
+        * lia.
+        * subst y.
+          assert (x = 1)%nat.
+          destruct x; lia.
+          contradiction.
+    - lia.
+    - exists y.
+      repeat split; auto.
+      + destruct y; lia.
+      + exists x; auto.
+    - exists x.
+      repeat split; auto.
+      + lia.
+      + exists y; lia. 
+  }
 
   destruct Hex as [k [[Hklower Hkupper] [q Heqnkq]]].
-  destruct p0; inversion Hwhich.
-  + eapply (check_factors_correct (Z.to_nat i) n).
-    * lia.
-    * rewrite Z_to_nat_to_Z; eauto.
-    Unshelve.
-    apply k.
-    * auto.
-    * lia.
-    * exists q. lia.
-  + eapply (check_factors_correct (Z.to_nat i) n).
-    * lia.
-    * rewrite Z_to_nat_to_Z; eauto.
-    Unshelve.
-    apply k.
-    * auto.
-    * lia.
-    * exists q. lia.
-  + elim (Zle_not_lt 0 (Z.sqrt (Z_of_nat n))).
-    lia.
-    lia.
+
+  rewrite H in Hwhich; simpl in Hwhich.
+  destruct p0; inversion Hwhich;
+  unshelve eapply (check_factors_correct (Z.abs_nat i) n p _ _ _ k).
+  all: try lia.
+  all: try assumption.
+  all: exists q; lia.
 Qed.
