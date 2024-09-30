@@ -143,47 +143,52 @@ Inductive list_trans {A : Type} : list A -> list A -> Prop :=
   | lt_swap x y l : list_trans (x :: y :: l) (y :: x :: l)
   | lt_skip x l l': list_trans l l' -> list_trans (x :: l) (x :: l').
 
-Goal list_trans [1;2;3;4;5] [1;3;2;4;5].
-Proof. apply lt_skip, lt_swap. Qed.
+Lemma list_trans_sym : forall A l l', @list_trans A l l' -> @list_trans A l' l.
+Proof.
+  induction 1; constructor; assumption.
+Qed.
 
 Inductive list_perm {A : Type} : list A -> list A -> Prop :=
-  | lp_nil : list_perm [] []
-  | lp_skip x l l': list_perm l l' -> list_perm (x :: l) (x :: l')
-  | lp_swap x y l : list_perm (x :: y :: l) (y :: x :: l)
-  | lp_trans l l' l'': list_perm l l' -> list_perm l' l'' -> list_perm l l''.
-
-Goal list_perm [1;2;3;5;4] [1;3;2;4;5].
-Proof.
-  apply lp_skip.
-  apply lp_trans with [3;2;5;4]; constructor.
-  apply lp_skip.
-  apply lp_trans with [4;5]; constructor.
-  apply lp_skip.
-  apply lp_nil.
-Qed.
+  | lp_refl l : list_perm l l
+  | lp_trans l l' l'': list_perm l l' -> list_trans l' l'' -> list_perm l l''.
 
 Theorem perm_refl : forall A l, @list_perm A l l.
 Proof.
-  induction l.
-  - apply lp_nil.
-  - apply lp_skip, IHl.
+  intros; apply lp_refl.
+Qed.
+
+Lemma perm_intro_r :
+ forall A l l', @list_perm A l l' -> 
+    forall l'', list_trans l'' l ->  list_perm l'' l'.
+Proof.
+  intros A l l' H; induction H.
+  - intros l'' H.
+    econstructor.
+    + apply lp_refl.
+    + assumption.
+  - intros.
+    apply lp_trans with l'; auto.
+Qed.
+
+Theorem perm_trans : forall A l l' l'',
+  @list_perm A l l' -> @list_perm A l' l'' -> @list_perm A l l''.
+Proof.
+  intros A l l' l'' H; revert l''.
+  induction H; simpl; auto.
+  intros;
+  apply IHlist_perm.
+  eapply perm_intro_r; eauto.
 Qed.
 
 Theorem perm_sym : forall A l l', @list_perm A l l' -> @list_perm A l' l.
 Proof.
   intros A l l' H.
   induction H.
-  - apply lp_nil.
-  - apply lp_skip, IHlist_perm.
-  - apply lp_swap.
-  - apply lp_trans with l'; auto.
-Qed.
-
-Theorem perm_trans : forall A l l' l'',
-  @list_perm A l l' -> @list_perm A l' l'' -> @list_perm A l l''.
-Proof.
-  intros A l l' l''.
-  apply lp_trans.
+  - apply lp_refl.
+  - eapply perm_intro_r.
+    apply IHlist_perm.
+    apply list_trans_sym.
+    assumption.
 Qed.
 
 (* Exercise 8.5 *)
