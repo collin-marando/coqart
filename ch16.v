@@ -588,15 +588,16 @@ Qed.
 End assoc_eq.
 
 Ltac term_list f zero l v := 
-    match v with
-    | f ?X1 ?X2 => 
-      let l1 := term_list f zero l X2 in
-        term_list f zero l1 X1
-    | zero => l
-    | ?X1 => constr:(cons X1 l) 
-    end.
+  match v with
+  | f ?X1 ?X2 => 
+    let l1 := term_list f zero l X2 in
+      term_list f zero l1 X1
+  | zero => l
+  | ?X1 => constr:(cons X1 l) 
+  end.
 
-Ltac compute_rank l n v := match l with
+Ltac compute_rank l n v := 
+  match l with
   | cons ?X1 ?X2 =>
     let tl := X2 in
       match constr:(X1 = v) with
@@ -605,7 +606,8 @@ Ltac compute_rank l n v := match l with
       end
   end.
 
-Ltac model_aux l f zero v := match v with
+Ltac model_aux l f zero v := 
+  match v with
   | f ?X1 ?X2 => 
     let r1 := model_aux l f zero X1 with r2 := model_aux l f zero X2 in
       constr:(node r1 r2)
@@ -637,3 +639,134 @@ Proof.
 Qed.
 
 (* End 16.5 *)
+
+Fixpoint nat_le_bool (n m:nat) {struct m} : bool :=
+  match n, m with
+  | 0, _ => true
+  | S n, 0 => false
+  | S n, S m => nat_le_bool n m
+  end.
+
+Fixpoint insert_bin (n:nat) (t:bin) {struct t} : bin :=
+  match t with
+  | leaf m => 
+    match nat_le_bool n m with
+    | true => node (leaf n) (leaf m)
+    | false => node (leaf m) (leaf n)
+    end
+  | node (leaf m) t' =>
+    match nat_le_bool n m with
+    | true => node (leaf n) t
+    | false => node (leaf m) (insert_bin n t')
+    end
+  | t => node (leaf n) t
+  end.
+
+Fixpoint sort_bin (t:bin) : bin := 
+  match t with
+  | node (leaf n) t' => insert_bin n (sort_bin t')
+  | t => t
+  end.
+
+Section commut_eq.
+Variables (B : Set) (f : B -> B -> B) (zero_B : B)
+  (zero_left: forall (x : B), f zero_B x = x)
+  (zero_right: forall (x : B), f x zero_B = x).
+Hypothesis comm : forall x y:B, f x y = f y x.
+Hypothesis assoc : forall x y z:B, f x (f y z) = f (f x y) z.
+
+Import List.
+
+Fixpoint bin_B (l:list B) (t:bin) {struct t} : B :=
+  match t with
+  | node t1 t2 => f (bin_B l t1) (bin_B l t2)
+  | leaf n => nth n l zero_B
+  | neutral => zero_B
+  end.
+
+Theorem insert_is_f: forall (l:list B) (n:nat) (t:bin),
+  bin_B l (insert_bin n t) = f (nth n l zero_B) (bin_B l t).
+Proof.
+  induction t; simpl; intros.
+  - destruct t1; auto.
+    destruct (nat_le_bool n n0) eqn:E; auto.
+    simpl; auto.
+    rewrite IHt2.
+    repeat rewrite assoc; rewrite (comm (nth n l zero_B)); auto.
+  - destruct (nat_le_bool n n0) eqn:E; auto.
+  - auto.
+Qed.
+
+Theorem sort_eq : forall (l:list B) (t:bin),
+  bin_B l (sort_bin t) = bin_B l t.
+Proof.
+  induction t; simpl; auto.
+  destruct t1; auto.
+  rewrite insert_is_f; rewrite IHt2.
+  reflexivity.
+Qed.
+
+Theorem sort_eq_2 : forall (l:list B) (t1 t2:bin),
+  bin_B l (sort_bin t1) = bin_B l (sort_bin t2) -> bin_B l t1 = bin_B l t2.
+Proof.
+  intros.
+  rewrite <- (sort_eq _ t1).
+  rewrite <- (sort_eq _ t2).
+  assumption.
+Qed.
+
+Theorem remove_neutral1_valid_B:
+ forall (l : list B) (t : bin), bin_B l (remove_neutral1 t) = bin_B l t.
+Proof.
+intros l t; elim t; auto.
+intros t1; case t1; simpl.
+- intros t1' t1'' IHt1 t2 IHt2; rewrite IHt2; trivial.
+- intros n IHt1 t2 IHt2; rewrite IHt2; trivial.
+- intros IHt1 t2 IHt2; rewrite zero_left; trivial.
+Qed.
+ 
+Theorem remove_neutral2_valid_B:
+ forall (l : list B) (t : bin),  bin_B l (remove_neutral2 t) = bin_B l t.
+Proof.
+  intros l t; elim t; auto.
+  intros t1 IHt1 t2; case t2; simpl.
+  - intros t2' t2'' IHt2; rewrite IHt2; trivial.
+  - auto.
+  - intros IHt2; rewrite zero_right; trivial.
+Qed. 
+ 
+Theorem remove_neutral_equal_B: forall (t t' : bin) (l : list B),
+  bin_B l (remove_neutral t) = bin_B l (remove_neutral t') -> bin_B l t = bin_B l t'.
+Proof.
+  unfold remove_neutral; intros t t' l.
+  repeat rewrite remove_neutral2_valid_B.
+  repeat rewrite remove_neutral1_valid_B.
+  trivial.
+Qed.
+
+End commut_eq.
+
+Ltac comm_eq B f zero_B assoc_thm comm_thm neutral_left_thm neutral_right_thm := 
+  match goal with
+  | [|- (?X1 = ?X2) ] => 
+    let l := term_list f zero_B (nil (A:=B)) X1 in
+    let term1 := model_aux l f zero_B X1
+    with term2 := model_aux l f zero_B X2 in
+    (change (bin_B B f zero_B l term1 = bin_B B f zero_B l term2);
+    apply flatten_valid_A_2 with (1 := assoc_thm);
+    apply remove_neutral_equal_B
+        with ( 1 := neutral_left_thm ) ( 2 := neutral_right_thm );
+    apply sort_eq_2 with (1 := comm_thm) (2 := assoc_thm); auto)
+  end.
+
+Theorem reflection_test4 : forall x y z:Z, (x + (y + z) = (z + x) + y)%Z.
+Proof.
+  intros x y z; comm_eq Z Zplus 0%Z Zplus_assoc Z.add_comm Z.add_0_l Z.add_0_r.
+Qed.
+
+Theorem reflection_test5 : forall x y z:Z, (x + (y + z) + 0 = 0 + (z + x) + y)%Z.
+Proof.
+  intros x y z; comm_eq Z Zplus 0%Z Zplus_assoc Z.add_comm Z.add_0_l Z.add_0_r.
+Qed.
+
+(* End 16.4 *)
