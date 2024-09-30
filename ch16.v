@@ -825,10 +825,10 @@ End count.
 Ltac NoPerm A eq_dec :=
   match goal with
   | [ |- (~ list_perm ?l ?l')] =>
-    apply (counts_in_perms A eq_dec) with (lt := l); auto
+    apply (counts_in_perms A eq_dec) with (lt := app l l'); auto
   end.
 
-Goal ~(list_perm [1;2;3;4] [1;3;2;5]).
+Goal ~(list_perm [1;2;3] [1;3;2;4]).
 Proof.
   NoPerm nat Nat.eq_dec.
 Qed.
