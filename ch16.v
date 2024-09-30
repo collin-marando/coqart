@@ -669,36 +669,31 @@ Fixpoint sort_bin (t:bin) : bin :=
   end.
 
 Section commut_eq.
-Variables (B : Set) (f : B -> B -> B) (zero_B : B)
-  (zero_left: forall (x : B), f zero_B x = x)
-  (zero_right: forall (x : B), f x zero_B = x).
-Hypothesis comm : forall x y:B, f x y = f y x.
-Hypothesis assoc : forall x y z:B, f x (f y z) = f (f x y) z.
+Variables (A : Set) (f : A -> A -> A) (zero_A : A)
+  (zero_left: forall (x : A), f zero_A x = x)
+  (zero_right: forall (x : A), f x zero_A = x).
+Hypothesis comm : forall x y:A, f x y = f y x.
+Hypothesis assoc : forall x y z:A, f x (f y z) = f (f x y) z.
+
+Definition bin_A' := bin_A A f zero_A.
 
 Import List.
 
-Fixpoint bin_B (l:list B) (t:bin) {struct t} : B :=
-  match t with
-  | node t1 t2 => f (bin_B l t1) (bin_B l t2)
-  | leaf n => nth n l zero_B
-  | neutral => zero_B
-  end.
-
-Theorem insert_is_f: forall (l:list B) (n:nat) (t:bin),
-  bin_B l (insert_bin n t) = f (nth n l zero_B) (bin_B l t).
+Theorem insert_is_f: forall (l:list A) (n:nat) (t:bin),
+  bin_A' l (insert_bin n t) = f (nth n l zero_A) (bin_A' l t).
 Proof.
   induction t; simpl; intros.
   - destruct t1; auto.
     destruct (nat_le_bool n n0) eqn:E; auto.
     simpl; auto.
     rewrite IHt2.
-    repeat rewrite assoc; rewrite (comm (nth n l zero_B)); auto.
+    repeat rewrite assoc; rewrite (comm (nth n l zero_A)); auto.
   - destruct (nat_le_bool n n0) eqn:E; auto.
   - auto.
 Qed.
 
-Theorem sort_eq : forall (l:list B) (t:bin),
-  bin_B l (sort_bin t) = bin_B l t.
+Theorem sort_eq : forall (l:list A) (t:bin),
+  bin_A' l (sort_bin t) = bin_A' l t.
 Proof.
   induction t; simpl; auto.
   destruct t1; auto.
@@ -706,8 +701,8 @@ Proof.
   reflexivity.
 Qed.
 
-Theorem sort_eq_2 : forall (l:list B) (t1 t2:bin),
-  bin_B l (sort_bin t1) = bin_B l (sort_bin t2) -> bin_B l t1 = bin_B l t2.
+Theorem sort_eq_2 : forall (l:list A) (t1 t2:bin),
+  bin_A' l (sort_bin t1) = bin_A' l (sort_bin t2) -> bin_A' l t1 = bin_A' l t2.
 Proof.
   intros.
   rewrite <- (sort_eq _ t1).
@@ -715,46 +710,17 @@ Proof.
   assumption.
 Qed.
 
-Theorem remove_neutral1_valid_B:
- forall (l : list B) (t : bin), bin_B l (remove_neutral1 t) = bin_B l t.
-Proof.
-intros l t; elim t; auto.
-intros t1; case t1; simpl.
-- intros t1' t1'' IHt1 t2 IHt2; rewrite IHt2; trivial.
-- intros n IHt1 t2 IHt2; rewrite IHt2; trivial.
-- intros IHt1 t2 IHt2; rewrite zero_left; trivial.
-Qed.
- 
-Theorem remove_neutral2_valid_B:
- forall (l : list B) (t : bin),  bin_B l (remove_neutral2 t) = bin_B l t.
-Proof.
-  intros l t; elim t; auto.
-  intros t1 IHt1 t2; case t2; simpl.
-  - intros t2' t2'' IHt2; rewrite IHt2; trivial.
-  - auto.
-  - intros IHt2; rewrite zero_right; trivial.
-Qed. 
- 
-Theorem remove_neutral_equal_B: forall (t t' : bin) (l : list B),
-  bin_B l (remove_neutral t) = bin_B l (remove_neutral t') -> bin_B l t = bin_B l t'.
-Proof.
-  unfold remove_neutral; intros t t' l.
-  repeat rewrite remove_neutral2_valid_B.
-  repeat rewrite remove_neutral1_valid_B.
-  trivial.
-Qed.
-
 End commut_eq.
 
-Ltac comm_eq B f zero_B assoc_thm comm_thm neutral_left_thm neutral_right_thm := 
+Ltac comm_eq A f zero_A assoc_thm comm_thm neutral_left_thm neutral_right_thm := 
   match goal with
   | [|- (?X1 = ?X2) ] => 
-    let l := term_list f zero_B (nil (A:=B)) X1 in
-    let term1 := model_aux l f zero_B X1
-    with term2 := model_aux l f zero_B X2 in
-    (change (bin_B B f zero_B l term1 = bin_B B f zero_B l term2);
+    let l := term_list f zero_A (nil (A:=A)) X1 in
+    let term1 := model_aux l f zero_A X1
+    with term2 := model_aux l f zero_A X2 in
+    (change (bin_A A f zero_A l term1 = bin_A A f zero_A l term2);
     apply flatten_valid_A_2 with (1 := assoc_thm);
-    apply remove_neutral_equal_B
+    apply remove_neutral_equal
         with ( 1 := neutral_left_thm ) ( 2 := neutral_right_thm );
     apply sort_eq_2 with (1 := comm_thm) (2 := assoc_thm); auto)
   end.
@@ -769,4 +735,100 @@ Proof.
   intros x y z; comm_eq Z Zplus 0%Z Zplus_assoc Z.add_comm Z.add_0_l Z.add_0_r.
 Qed.
 
-(* End 16.4 *)
+End neutral_element.
+
+(* End 16.6 *)
+
+(* Exercise 16.7 *)
+(* Using the notion of permutations defined in Exercise 8.4 page 216 and the
+  counting function defined in Exercise 9.5 page 256, show that if a list is
+  a permutation of another list, then any natural number occurs as many times
+  in both lists. *)
+
+(* From Exercise 8.5 *)
+Require Import List.
+Import ListNotations.
+
+Inductive list_trans {A : Type} : list A -> list A -> Prop :=
+  | lt_swap x y l : list_trans (x :: y :: l) (y :: x :: l)
+  | lt_skip x l l': list_trans l l' -> list_trans (x :: l) (x :: l').
+
+Inductive list_perm {A : Type} : list A -> list A -> Prop :=
+  | lp_refl l : list_perm l l
+  | lp_trans l l' l'': list_perm l l' -> list_trans l' l'' -> list_perm l l''.
+
+Section count.
+Variables (A : Set).
+Hypothesis eq_dec: forall x y:A, {x = y} + {x <> y}.
+
+(* From 9.5, made generic *)
+Fixpoint num_occur (l: list A) (n: A) : nat :=
+  match l with
+  | nil => 0
+  | a :: l' => 
+    match (eq_dec a n) with
+    | left _ => 1 + num_occur l' n
+    | right _ => num_occur l' n
+    end
+  end.
+
+Theorem trans_occur_nat: forall l l':list A,
+  list_trans l l' -> forall x, num_occur l x = num_occur l' x.
+Proof.
+  induction 1; simpl; intros z.
+  - destruct (eq_dec _ _); destruct (eq_dec _ _); auto.
+  - destruct (eq_dec _ _); auto.
+Qed.
+
+Theorem perm_occur_nat: forall l l':list A,
+  list_perm l l' -> forall x, num_occur l x = num_occur l' x.
+Proof.
+  induction 1; auto.
+  intros x.
+  rewrite IHlist_perm.
+  apply trans_occur_nat; auto.
+Qed.
+
+(* Build a specialized reflection tactic "NoPerm" that solves goals of the
+  form "~ perm l l'" by finding an element of the first list that does not occur the
+  same number of times in both lists. *)
+
+Theorem no_perm: forall l l':list A, 
+  (exists x, num_occur l x <> num_occur l' x) -> ~ list_perm l l'.
+Proof.
+  intros l l' [x H]; contradict H.
+  apply perm_occur_nat; auto.
+Qed.
+
+Fixpoint check_counts (l l' lt : list A) : bool :=
+  match lt with
+  | nil => true
+  | t :: lt' => 
+    let c1 := num_occur l t in
+    let c2 := num_occur l' t in
+    match Nat.eq_dec (num_occur l t) (num_occur l' t) with
+    | left _ => check_counts l l' lt'
+    | right _ => false
+    end
+  end.
+
+Theorem counts_in_perms: forall l l' lt,
+  check_counts l l' lt = false -> ~ list_perm l l'.
+Proof.
+  induction lt; simpl; try discriminate.
+  destruct (Nat.eq_dec (num_occur l a) (num_occur l' a)); auto.
+  intros _; apply no_perm; eexists; eauto.
+Qed.
+
+End count.
+
+Ltac NoPerm A eq_dec :=
+  match goal with
+  | [ |- (~ list_perm ?l ?l')] =>
+    apply (counts_in_perms A eq_dec) with (lt := l); auto
+  end.
+
+Goal ~(list_perm [1;2;3;4] [1;3;2;5]).
+Proof.
+  NoPerm nat Nat.eq_dec.
+Qed.
