@@ -772,7 +772,7 @@ Fixpoint num_occur (l: list A) (n: A) : nat :=
     end
   end.
 
-Theorem trans_occur_nat: forall l l':list A,
+Theorem trans_occur: forall l l':list A,
   list_trans l l' -> forall x, num_occur l x = num_occur l' x.
 Proof.
   induction 1; simpl; intros z.
@@ -780,13 +780,13 @@ Proof.
   - destruct (eq_dec _ _); auto.
 Qed.
 
-Theorem perm_occur_nat: forall l l':list A,
+Theorem perm_occur: forall l l':list A,
   list_perm l l' -> forall x, num_occur l x = num_occur l' x.
 Proof.
   induction 1; auto.
   intros x.
   rewrite IHlist_perm.
-  apply trans_occur_nat; auto.
+  apply trans_occur; auto.
 Qed.
 
 (* Build a specialized reflection tactic "NoPerm" that solves goals of the
@@ -797,7 +797,7 @@ Theorem no_perm: forall l l':list A,
   (exists x, num_occur l x <> num_occur l' x) -> ~ list_perm l l'.
 Proof.
   intros l l' [x H]; contradict H.
-  apply perm_occur_nat; auto.
+  apply perm_occur; auto.
 Qed.
 
 Fixpoint check_counts (l l' lt : list A) : bool :=
