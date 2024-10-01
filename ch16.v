@@ -832,3 +832,8 @@ Goal ~(list_perm [1;2;3] [1;3;2;4]).
 Proof.
   NoPerm nat Nat.eq_dec.
 Qed.
+
+(* End 16.7 *)
+
+(* See more/perm_tacs for a reflexion tactic that solves both goals of the form
+  "perm l l'" and of the form "~ perm l l'" *)
