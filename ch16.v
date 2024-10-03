@@ -450,7 +450,6 @@ Section tactic.
     let t := model_aux l f v in
     constr:(bin_A A f l def t).
   
-  (* At the end of the tactic, we also remove the zero. *)
   Ltac assoc_eq A f assoc_thm :=
     match goal with
     | |- @eq A ?X1 ?X2 =>
@@ -621,6 +620,7 @@ Ltac model_A A f zero v :=
   let t := model_aux l f zero v in
   constr:(bin_A A f zero l t).
 
+(* At the end of the tactic, we also remove the zero. *)
 Ltac assoc_eq A f zero assoc_thm neutral_left_thm neutral_right_thm :=
   match goal with
   | |- @eq A ?X1 ?X2 =>
