@@ -4,7 +4,8 @@ Import ListNotations.
 
 (* The following is a continuation of Exercise 16.7. 
   In this file, we expand the NoPerm tactic to "Perm", a reflexion tactic
-  that solves both goals of the form "perm l l'" and of the form "~ perm l l'" *)
+  that solves both goals of the form "perm l l'" and of the form "~ perm l l'"
+  using the method suggested by the exercise. *)
 
 (* Note that rather than use "num_occur" from 9.5 as in the exercise, we opt 
   to use "count_occ" from the standard library. This function is trivially
@@ -56,6 +57,13 @@ Proof.
   econstructor.
   apply IHperm.
   apply lt_skip; auto.
+Qed.
+
+Lemma perm_cut {A : Type}: forall l l' l'':list A,
+  perm l' l'' -> perm (l ++ l') (l ++ l'').
+Proof.
+  induction l; simpl; auto; intros.
+  apply perm_skip; auto.
 Qed.
 
 Lemma perm_intro_r {A : Type}:
@@ -115,12 +123,12 @@ Proof.
   eapply perm_trans.
   - apply perm_skip, H.
   - eapply perm_trans.
-    apply perm_skip.
-    change (a :: l1 ++ l2) with ((a :: l1) ++ l2).
-  admit.
-  admit.
-Admitted.
-
+    apply perm_rotate.
+    rewrite <- app_assoc.
+    apply perm_cut.
+    apply perm_sym.
+    apply perm_rotate.
+Qed.
 
 Section count.
 Variables (A : Set).
@@ -219,12 +227,9 @@ Proof.
       destruct (eq_dec a' a) eqn:Eaa'; subst; simpldec.
       apply occ_S in Ha as [x [y Hl']].
       subst.
-      apply perm_sym.
       change (a' :: x ++ a :: y) with ((a' :: x) ++ a :: y).
-      eapply perm_trans; [apply perm_app_swap|simpl].
-      apply perm_skip.
-      eapply perm_trans; [apply perm_app_swap|simpl].
-      apply perm_sym, IHl. 
+      apply perm_middle; simpl.
+      apply IHl.
       intros b. specialize H with b. simpl.
       destruct (eq_dec a b); destruct (eq_dec a' b); subst; simpldec.
       rewrite count_occ_elt_eq in H; auto.
@@ -285,14 +290,15 @@ End count.
   This is both more efficient computationally, and more general as demonstrated below *)
 
 Ltac Perm A eq_dec :=
-  match goal with
-  | [ |- (~ perm ?l ?l')] =>
-    apply (counts_diff_not_perm A eq_dec) with (lt := app l l')
-  | [ |- (perm ?l ?l)] => 
-    apply lp_refl
-  | [ |- (perm ?l ?l')] => 
-    apply (counts_same_perm A eq_dec)
-  end; auto. 
+  try solve [
+    match goal with
+    | [ |- (~ perm ?l ?l')] =>
+      apply (counts_diff_not_perm A eq_dec) with (lt := app l l')
+    | [ |- (perm ?l ?l)] => 
+      apply lp_refl
+    | [ |- (perm ?l ?l')] => 
+      apply (counts_same_perm A eq_dec)
+    end; auto]. 
 
 Goal ~(perm [1;2;3] [1;3;2;4]).
   Perm nat Nat.eq_dec.
@@ -305,3 +311,10 @@ Qed.
 Goal forall l, @perm nat l l.
   intros; Perm nat Nat.eq_dec.
 Qed.
+
+(* Note that this tactic cannot solve more abstract goals like the following: *)
+
+Goal forall l l', @perm nat (l ++ l') (l' ++ l).
+Proof.
+  intros; Perm nat Nat.eq_dec.
+Admitted.
