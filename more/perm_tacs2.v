@@ -312,16 +312,6 @@ Ltac model_aux l v :=
       constr:(leaf n)
   end.
 
-Ltac replace_cons :=
-  match goal with
-  | [ |- context [(?a :: ?l)] ] => 
-    match l with
-    | nil => replace (a :: l) with ([a] ++ []) by auto
-    | _ => replace (a :: l) with ([a] ++ l) by auto
-    end
-  | _ => idtac
-  end.
-
 Ltac comm_perm A := 
   try solve [
   match goal with
@@ -335,13 +325,13 @@ Ltac comm_perm A :=
     apply sort_perm_2; simpl; auto)
   end].
 
-Goal forall l l' x, @perm nat (l ++  l' ++ [x]) ([x] ++ l' ++ l).
+Goal forall l l' x, @perm nat (l ++ l' ++ [x]) ([x] ++ l' ++ l).
   intros; comm_perm nat.
 Qed.
 
 (* TODO: Handle cons in tactic also *)
 
-Goal forall l l' x, @perm nat (3 :: l ++  l' ++ [x]) (3 :: x :: l' ++ l).
+Goal forall l l' x, @perm nat (3 :: l ++ l' ++ [x]) (3 :: x :: l' ++ l).
   intros. 
   change (perm ([3] ++ l ++ l' ++ [x]) ([3] ++ [x] ++ l' ++ l)).
   intros; comm_perm nat.
