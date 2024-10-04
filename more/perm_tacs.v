@@ -318,3 +318,5 @@ Goal forall l l', @perm nat (l ++ l') (l' ++ l).
 Proof.
   intros; Perm nat Nat.eq_dec.
 Admitted.
+
+(* See more/perm_tacs2 for a tactic which can solve this goal *)

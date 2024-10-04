@@ -640,6 +640,9 @@ Qed.
 
 (* End 16.5 *)
 
+(* Exercise 16.6 *)
+(* Prove insert_is_f, sort_eg, and sort_eq_2 *)
+
 Fixpoint nat_le_bool (n m:nat) {struct m} : bool :=
   match n, m with
   | 0, _ => true
@@ -837,3 +840,6 @@ Qed.
 
 (* See more/perm_tacs for a reflexion tactic that solves both goals of the form
   "perm l l'" and of the form "~ perm l l'" *)
+
+(* See more/perm_tacs2 for an approach using the techniques from 
+  "Section 16.3.3 - Commutativity: Sorting Variables"  *)
